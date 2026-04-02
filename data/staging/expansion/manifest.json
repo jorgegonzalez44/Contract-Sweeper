@@ -1,0 +1,196 @@
+[
+  {
+    "filename": "expansion_fpds_2000_2004_direct.csv",
+    "source": "FPDS",
+    "url": "https://www.fpds.gov/ezsearch/search.do",
+    "year_start": 2000,
+    "year_end": 2004,
+    "filter_type": "direct",
+    "filters": {
+      "Place of Performance State": "PR",
+      "Date Signed": "10/01/2000 to 09/30/2004"
+    },
+    "description": "FPDS contracts performed in Puerto Rico, FY2000-2004"
+  },
+  {
+    "filename": "expansion_fpds_2000_2004_vendor.csv",
+    "source": "FPDS",
+    "url": "https://www.fpds.gov/ezsearch/search.do",
+    "year_start": 2000,
+    "year_end": 2004,
+    "filter_type": "vendor",
+    "filters": {
+      "Vendor Address State": "PR",
+      "Date Signed": "10/01/2000 to 09/30/2004"
+    },
+    "description": "FPDS contracts with PR-based vendors, FY2000-2004"
+  },
+  {
+    "filename": "expansion_fpds_2005_2008_direct.csv",
+    "source": "FPDS",
+    "url": "https://www.fpds.gov/ezsearch/search.do",
+    "year_start": 2005,
+    "year_end": 2008,
+    "filter_type": "direct",
+    "filters": {
+      "Place of Performance State": "PR",
+      "Date Signed": "10/01/2004 to 09/30/2008"
+    },
+    "description": "FPDS contracts performed in Puerto Rico, FY2005-2008 (CRITICAL: must contain 2007)"
+  },
+  {
+    "filename": "expansion_fpds_2005_2008_vendor.csv",
+    "source": "FPDS",
+    "url": "https://www.fpds.gov/ezsearch/search.do",
+    "year_start": 2005,
+    "year_end": 2008,
+    "filter_type": "vendor",
+    "filters": {
+      "Vendor Address State": "PR",
+      "Date Signed": "10/01/2004 to 09/30/2008"
+    },
+    "description": "FPDS contracts with PR-based vendors, FY2005-2008 (CRITICAL: must contain 2007)"
+  },
+  {
+    "filename": "expansion_fpds_2009_2016_direct.csv",
+    "source": "FPDS",
+    "url": "https://www.fpds.gov/ezsearch/search.do",
+    "year_start": 2009,
+    "year_end": 2016,
+    "filter_type": "direct",
+    "filters": {
+      "Place of Performance State": "PR",
+      "Date Signed": "10/01/2008 to 09/30/2016"
+    },
+    "description": "FPDS contracts performed in Puerto Rico, FY2009-2016"
+  },
+  {
+    "filename": "expansion_fpds_2009_2016_vendor.csv",
+    "source": "FPDS",
+    "url": "https://www.fpds.gov/ezsearch/search.do",
+    "year_start": 2009,
+    "year_end": 2016,
+    "filter_type": "vendor",
+    "filters": {
+      "Vendor Address State": "PR",
+      "Date Signed": "10/01/2008 to 09/30/2016"
+    },
+    "description": "FPDS contracts with PR-based vendors, FY2009-2016"
+  },
+  {
+    "filename": "expansion_fpds_2017_2025_direct.csv",
+    "source": "FPDS",
+    "url": "https://www.fpds.gov/ezsearch/search.do",
+    "year_start": 2017,
+    "year_end": 2025,
+    "filter_type": "direct",
+    "filters": {
+      "Place of Performance State": "PR",
+      "Date Signed": "10/01/2016 to 09/30/2025"
+    },
+    "description": "FPDS contracts performed in Puerto Rico, FY2017-2025"
+  },
+  {
+    "filename": "expansion_fpds_2017_2025_vendor.csv",
+    "source": "FPDS",
+    "url": "https://www.fpds.gov/ezsearch/search.do",
+    "year_start": 2017,
+    "year_end": 2025,
+    "filter_type": "vendor",
+    "filters": {
+      "Vendor Address State": "PR",
+      "Date Signed": "10/01/2016 to 09/30/2025"
+    },
+    "description": "FPDS contracts with PR-based vendors, FY2017-2025"
+  },
+  {
+    "filename": "expansion_idv_indirect_pr.csv",
+    "source": "USASpending",
+    "url": "https://www.usaspending.gov/search",
+    "year_start": 2000,
+    "year_end": 2025,
+    "filter_type": "idv",
+    "filters": {
+      "Award Type": "IDV / Delivery Order",
+      "Recipient State": "NOT PR",
+      "Keyword": "Puerto Rico"
+    },
+    "description": "USASpending IDV awards referencing Puerto Rico with non-PR recipients"
+  },
+  {
+    "filename": "expansion_dod_upr_2001_2015.csv",
+    "source": "USASpending",
+    "url": "https://www.usaspending.gov/search",
+    "year_start": 2001,
+    "year_end": 2015,
+    "filter_type": "dod",
+    "filters": {
+      "Agency": "Department of Defense",
+      "Keywords": [
+        "Puerto Rico",
+        "University of Puerto Rico",
+        "Mayaguez",
+        "Ramey",
+        "Roosevelt Roads"
+      ],
+      "Time Period": "2001-2015"
+    },
+    "description": "USASpending DoD contracts related to PR (UPR, bases), 2001-2015"
+  },
+  {
+    "filename": "expansion_dod_upr_2016_2025.csv",
+    "source": "USASpending",
+    "url": "https://www.usaspending.gov/search",
+    "year_start": 2016,
+    "year_end": 2025,
+    "filter_type": "dod",
+    "filters": {
+      "Agency": "Department of Defense",
+      "Keywords": [
+        "Puerto Rico",
+        "University of Puerto Rico",
+        "Mayaguez",
+        "Ramey",
+        "Roosevelt Roads"
+      ],
+      "Time Period": "2016-2025"
+    },
+    "description": "USASpending DoD contracts related to PR (UPR, bases), 2016-2025"
+  },
+  {
+    "filename": "expansion_reconstruction_2017_2025.csv",
+    "source": "USASpending",
+    "url": "https://www.usaspending.gov/search",
+    "year_start": 2017,
+    "year_end": 2025,
+    "filter_type": "reconstruction",
+    "filters": {
+      "Agencies": [
+        "FEMA",
+        "HUD",
+        "DOT",
+        "USACE",
+        "VA"
+      ],
+      "Keywords": [
+        "Puerto Rico",
+        "Maria",
+        "reconstruction"
+      ],
+      "Time Period": "2017-2025"
+    },
+    "description": "USASpending reconstruction contracts (FEMA/HUD/DOT/USACE/VA), 2017-2025"
+  },
+  {
+    "filename": "expansion_subcontracts_pr.csv",
+    "source": "FSRS",
+    "url": "https://www.fsrs.gov",
+    "year_start": 2000,
+    "year_end": 2025,
+    "filter_type": "subcontract",
+    "filters": {
+      "Place of Performance": "Puerto Rico"
+    },
+    "description": "FSRS sub-award data with place of performance in Puerto Rico"
+  }
+]
