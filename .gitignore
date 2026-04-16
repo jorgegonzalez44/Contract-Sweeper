@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Data files (downloaded CSVs — too large for git)
+data/staging/expansion/*.csv
+data/staging/processed/*.csv
+data/raw/*.csv
+
+# Logs
+data/logs/*.log
+
+# Keep structure files
+!data/**/.gitkeep
+!data/staging/expansion/DOWNLOAD_INSTRUCTIONS.md
+!data/staging/expansion/manifest.json
