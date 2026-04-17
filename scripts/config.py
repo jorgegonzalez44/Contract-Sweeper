@@ -23,6 +23,10 @@ LOGS_DIR = DATA_DIR / "logs"
 
 ALL_DIRS = [DATA_DIR, STAGING_DIR, EXPANSION_DIR, PROCESSED_DIR, RAW_DIR, LOGS_DIR]
 
+# Consolidated master and enrichment outputs
+MASTER_PATH = PROCESSED_DIR / "pr_contracts_master.csv"
+ENRICHMENT_OUTPUT_DIR = PROCESSED_DIR / "enrichment"
+
 # ---------------------------------------------------------------------------
 # Download manifest — the 13 expected expansion files
 # ---------------------------------------------------------------------------
@@ -417,3 +421,35 @@ def get_expected_filenames() -> list:
 def get_normalized_filename(expansion_filename: str) -> str:
     """Convert expansion filename to normalized filename."""
     return f"normalized_{expansion_filename}"
+
+
+def _load_dotenv(path: Path) -> dict:
+    """Minimal .env parser: KEY=value per line, ignores comments and blanks."""
+    out = {}
+    if not path.exists():
+        return out
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, _, v = line.partition("=")
+        out[k.strip()] = v.strip().strip('"').strip("'")
+    return out
+
+
+def get_sam_api_key() -> str:
+    """Return SAM.gov API key from SAM_API_KEY env var or .env file. Raises if missing."""
+    import os
+    key = os.environ.get("SAM_API_KEY", "").strip()
+    if key:
+        return key
+    parsed = _load_dotenv(PROJECT_ROOT / ".env")
+    key = parsed.get("SAM_API_KEY", "").strip()
+    if key:
+        return key
+    raise RuntimeError(
+        "SAM_API_KEY not found. Set it one of two ways:\n"
+        "  1. export SAM_API_KEY=your_key_here\n"
+        f"  2. Create {PROJECT_ROOT / '.env'} containing: SAM_API_KEY=your_key_here\n"
+        "Get a free key at https://sam.gov/data-services"
+    )
