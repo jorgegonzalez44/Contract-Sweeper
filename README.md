@@ -1,5 +1,7 @@
 # Contract-Sweeper
 
+![Tests](https://github.com/jotaele44/contract-sweeper/actions/workflows/tests.yml/badge.svg)
+
 Puerto Rico Federal Contracts Data Pipeline — automated acquisition, validation,
 normalization, and coverage analysis of federal procurement data (FY 2000–2025).
 
@@ -14,12 +16,14 @@ files, 4 USASpending query files, and 1 FSRS subcontract file.
 ## Architecture
 
 ```
-Step 1  Setup Directories          scripts/setup_directories.py
-Step 2  Generate Instructions      scripts/download_instructions.py
-Step 3  Auto-Download Datasets     scripts/auto_download.py
-Step 4  Validate Downloads         scripts/validate_downloads.py
-Step 5  Normalize & Transform      scripts/normalize_expansion_inputs.py
-Step 6  Validate Coverage          scripts/validate_expansion_coverage.py
+Step 1    Setup Directories          scripts/setup_directories.py
+Step 2    Generate Instructions      scripts/download_instructions.py
+Step 3    Auto-Download Datasets     scripts/auto_download.py
+Step 4    Validate Downloads         scripts/validate_downloads.py
+Step 5    Normalize & Transform      scripts/normalize_expansion_inputs.py
+Step 5.5  Cross-File Dedup + Master  scripts/deduplicate_master.py
+Step 6    Validate Coverage          scripts/validate_expansion_coverage.py
+Step 7    SAM.gov UEI Enrichment     scripts/sam_enrichment.py  (optional)
 ```
 
 All steps are orchestrated by `run_all.py`, which produces a summary report
@@ -72,7 +76,9 @@ python3 run_all.py [flags]
 --force-download    Re-download even if files already exist
 --skip-validation   Skip step 4 (download validation)
 --skip-normalize    Skip step 5 (normalization)
+--skip-dedup        Skip step 5.5 (cross-file dedup + master build)
 --skip-coverage     Skip step 6 (coverage validation)
+--skip-enrichment   Skip step 7 (SAM.gov UEI enrichment)
 ```
 
 ### Individual scripts
@@ -142,10 +148,47 @@ Standardizes column names across all sources to `STANDARD_COLUMNS`, parses dates
 (flexible format), derives federal fiscal year (Oct–Sept boundary), cleans
 dollar amounts, deduplicates within each file, and outputs to `data/staging/processed/`.
 
+### Step 5.5: Cross-File Deduplication + Master Build
+Merges all 13 normalized CSVs into a single `pr_contracts_master.csv`. Removes
+duplicate contracts that appear in both `*_direct` and `*_vendor` files using a
+composite key of `(contract_id, award_date, vendor_name, obligated_amount)`.
+Source-file provenance is consolidated into a comma-joined `source_file` column.
+
 ### Step 6: Validate Coverage
 Builds a fiscal-year coverage matrix (2000–2025), checks for the **critical 2007 gap**
 in FPDS 2005–2008 files (FPDS migrated platforms around 2007), and verifies
 timeline continuity with no internal gaps.
+
+### Step 7: SAM.gov UEI Enrichment (optional)
+Resolves vendor UEI/CAGE/DUNS via the SAM.gov Entity Information API v2, with
+USASpending.gov as a fallback. Requires a free API key — see setup below.
+
+**Setup:**
+```bash
+# Option A — environment variable
+export SAM_API_KEY=your_key_here
+
+# Option B — .env file (gitignored, never committed)
+cp .env.example .env
+# edit .env and replace placeholder with real key
+```
+
+**Running:**
+```bash
+python3 run_all.py                              # includes enrichment if key is set
+python3 run_all.py --skip-enrichment           # skip enrichment
+python3 scripts/sam_enrichment.py --dry-run    # validate config, no API calls
+python3 scripts/sam_enrichment.py --resume     # resume from checkpoint
+python3 scripts/sam_enrichment.py --top 500    # top 500 vendors by value only
+```
+
+**Outputs** (in `data/staging/processed/enrichment/`):
+- `vendor_uei_index.csv` — resolved UEI/CAGE/DUNS per vendor
+- `master_enriched.csv` — master CSV with UEI columns filled
+- `enrichment_summary.json` — coverage stats and gate result
+- `failed_lookups.csv` — vendors needing manual resolution
+
+⚠️ The enrichment output directory is gitignored — it may contain vendor PII.
 
 ## Known Issues
 
