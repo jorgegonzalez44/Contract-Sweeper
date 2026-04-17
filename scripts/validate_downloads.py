@@ -46,6 +46,11 @@ def validate_file(filepath: Path, logger) -> dict:
 
     result["exists"] = True
 
+    # File size sanity check (< 100 bytes is almost certainly empty or truncated)
+    file_size = filepath.stat().st_size
+    if file_size < 100:
+        result["warnings"].append(f"Suspiciously small file: {file_size} bytes (possible truncated download)")
+
     # Try to read the CSV
     try:
         df = read_csv_safe(filepath)

@@ -2,6 +2,12 @@
 __pycache__/
 *.pyc
 *.pyo
+.venv/
+venv/
+
+# Secrets — NEVER commit
+.env
+*.key
 
 # Data files (downloaded CSVs — too large for git)
 data/staging/expansion/*.csv
@@ -10,6 +16,9 @@ data/raw/*.csv
 
 # Logs
 data/logs/*.log
+
+# Enrichment outputs (may contain vendor PII)
+data/staging/processed/enrichment/
 
 # Keep structure files
 !data/**/.gitkeep
