@@ -75,6 +75,12 @@ class TestValidateFile:
         assert result["rows"] < 50
         assert any("Suspiciously low" in w for w in result["warnings"])
 
+    def test_tiny_file_warns(self, tmp_path, logger):
+        p = tmp_path / "tiny.csv"
+        p.write_text("a,b\n1,2\n", encoding="utf-8")
+        result = validate_file(p, logger)
+        assert any("small file" in w.lower() or "bytes" in w.lower() for w in result["warnings"])
+
     def test_all_null_data_warns(self, tmp_path, logger):
         p = tmp_path / "nulls.csv"
         p.write_text(
