@@ -165,17 +165,18 @@ def _build_usaspending_payload(entry: dict) -> tuple:
 
     elif ftype == "reconstruction":
         payload_filters["award_type_codes"] = _CONTRACT_TYPE_CODES
-        agency_names = {
-            "FEMA": "Federal Emergency Management Agency",
-            "HUD": "Department of Housing and Urban Development",
-            "DOT": "Department of Transportation",
-            "USACE": "Department of the Army",
-            "VA": "Department of Veterans Affairs",
+        # FEMA and USACE are subtier agencies; HUD, DOT, VA are toptier
+        _agency_map = {
+            "FEMA":  {"tier": "subtier",  "name": "Federal Emergency Management Agency"},
+            "HUD":   {"tier": "toptier",  "name": "Department of Housing and Urban Development"},
+            "DOT":   {"tier": "toptier",  "name": "Department of Transportation"},
+            "USACE": {"tier": "subtier",  "name": "U.S. Army Corps of Engineers"},
+            "VA":    {"tier": "toptier",  "name": "Department of Veterans Affairs"},
         }
         raw_agencies = filters.get("Agencies", [])
         payload_filters["agencies"] = [
-            {"type": "awarding", "tier": "toptier", "name": agency_names.get(a, a)}
-            for a in raw_agencies
+            {"type": "awarding", "tier": _agency_map[a]["tier"], "name": _agency_map[a]["name"]}
+            for a in raw_agencies if a in _agency_map
         ]
         keywords = filters.get("Keywords", ["Puerto Rico"])
         payload_filters["keywords"] = keywords
@@ -377,11 +378,7 @@ def download_fpds(entry: dict, output_dir: Path, logger, session: requests.Sessi
         if b"<!doctype" in content_start or b"<html" in content_start:
             result["status"] = "MANUAL"
             result["error"] = "FPDS Atom API is defunct — manual browser download required"
-            logger.warning(f"  FPDS API returned HTML (Atom feed no longer served)")
-            logger.info(f"  Manual download required:")
-            logger.info(f"    1. Go to https://www.fpds.gov/ezsearch/search.do")
-            logger.info(f"    2. Advanced Search → set filters per DOWNLOAD_INSTRUCTIONS.md")
-            logger.info(f"    3. Export CSV → save to data/staging/expansion/{fname}")
+            logger.warning(f"  FPDS returned HTML (Atom feed defunct); USASpending fallback will be attempted for post-{USASPENDING_MIN_YEAR} windows")
             break
 
         # Parse XML — recover=True tolerates minor malformations (e.g. unescaped &)
@@ -458,8 +455,8 @@ def download_fsrs(entry: dict, output_dir: Path, logger, session: requests.Sessi
         resp = session.post(
             "https://www.fsrs.gov/rss",
             data={"s": "Search", "pop_state": "PR", "reportType": "sub_award"},
-            timeout=60,
-            allow_redirects=True,
+            timeout=15,
+            allow_redirects=False,
         )
 
         # Check if we got actual data (not an HTML page)
