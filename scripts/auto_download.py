@@ -340,7 +340,7 @@ def download_fpds(entry: dict, output_dir: Path, logger, session: requests.Sessi
             result["status"] = "FAILED"
             result["error"] = "FPDS returned HTML instead of XML (rate-limited or endpoint changed)"
             logger.error(f"  FPDS returned an HTML page — possible rate-limit or URL change")
-            logger.debug(f"  Response snippet: {resp.content[:300]!r}")
+            logger.info(f"  Response snippet: {resp.content[:300]!r}")
             break
 
         # Parse XML — recover=True tolerates minor malformations (e.g. unescaped &)
@@ -350,7 +350,7 @@ def download_fpds(entry: dict, output_dir: Path, logger, session: requests.Sessi
             result["status"] = "FAILED"
             result["error"] = f"XML parse error: {e}"
             logger.error(f"  FPDS XML parse error: {e}")
-            logger.debug(f"  Response snippet: {resp.content[:300]!r}")
+            logger.info(f"  Response snippet: {resp.content[:300]!r}")
             break
 
         # Get total results count on first page
