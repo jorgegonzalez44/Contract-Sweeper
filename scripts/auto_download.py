@@ -82,6 +82,14 @@ def _retry_request(session, method, url, retries=MAX_RETRIES, **kwargs):
                 resp = session.post(url, **kwargs)
             resp.raise_for_status()
             return resp
+        except requests.HTTPError as e:
+            # Don't retry client errors (4xx) — they won't improve on retry
+            if e.response is not None and 400 <= e.response.status_code < 500:
+                raise
+            last_err = e
+            if attempt < retries - 1:
+                wait = RETRY_BACKOFF[attempt] if attempt < len(RETRY_BACKOFF) else 8
+                time.sleep(wait)
         except requests.RequestException as e:
             last_err = e
             if attempt < retries - 1:
@@ -157,8 +165,9 @@ def _build_usaspending_payload(entry: dict) -> dict:
         "fields": USASPENDING_FIELDS,
         "page": 1,
         "limit": 100,
-        "sort": "Award ID",
-        "order": "asc",
+        "sort": "Award Amount",
+        "order": "desc",
+        "subawards": False,
     }
 
 
@@ -180,6 +189,14 @@ def download_usaspending(entry: dict, output_dir: Path, logger, session: request
         try:
             resp = _retry_request(session, "POST", USASPENDING_BASE, json=payload, timeout=30)
             data = resp.json()
+        except requests.HTTPError as e:
+            body = e.response.text[:600] if e.response is not None else ""
+            result["status"] = "FAILED"
+            result["error"] = f"HTTP {e.response.status_code if e.response else '?'}: {body}"
+            logger.error(f"  USASpending API HTTP error on page {page}: {e}")
+            if body:
+                logger.error(f"  Response body: {body}")
+            break
         except Exception as e:
             result["status"] = "FAILED"
             result["error"] = str(e)
@@ -317,13 +334,23 @@ def download_fpds(entry: dict, output_dir: Path, logger, session: requests.Sessi
             logger.error(f"  FPDS request failed at offset {offset}: {e}")
             break
 
-        # Parse XML
+        # Detect HTML error pages (FPDS sometimes returns 200 + HTML on rate-limit)
+        content_start = resp.content[:500].lower()
+        if b"<!doctype" in content_start or b"<html" in content_start:
+            result["status"] = "FAILED"
+            result["error"] = "FPDS returned HTML instead of XML (rate-limited or endpoint changed)"
+            logger.error(f"  FPDS returned an HTML page — possible rate-limit or URL change")
+            logger.debug(f"  Response snippet: {resp.content[:300]!r}")
+            break
+
+        # Parse XML — recover=True tolerates minor malformations (e.g. unescaped &)
         try:
-            root = etree.fromstring(resp.content)
+            root = etree.fromstring(resp.content, etree.XMLParser(recover=True))
         except etree.XMLSyntaxError as e:
             result["status"] = "FAILED"
             result["error"] = f"XML parse error: {e}"
             logger.error(f"  FPDS XML parse error: {e}")
+            logger.debug(f"  Response snippet: {resp.content[:300]!r}")
             break
 
         # Get total results count on first page
