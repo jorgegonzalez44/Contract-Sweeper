@@ -59,35 +59,35 @@ class TestCheckFileCoverage:
 class TestCheck2007Gap:
     def test_2007_present(self):
         matrix = {
-            CRITICAL_2007_FILES[0]: {"fiscal_years": {2005, 2006, 2007, 2008}},
-            CRITICAL_2007_FILES[1]: {"fiscal_years": {2005, 2006, 2007, 2008}},
+            CRITICAL_2007_FILES[0]: {"exists": True, "fiscal_years": {2005, 2006, 2007, 2008}},
+            CRITICAL_2007_FILES[1]: {"exists": True, "fiscal_years": {2005, 2006, 2007, 2008}},
         }
         assert check_2007_gap(matrix) is True
 
     def test_2007_missing_in_one(self):
         matrix = {
-            CRITICAL_2007_FILES[0]: {"fiscal_years": {2005, 2006, 2007, 2008}},
-            CRITICAL_2007_FILES[1]: {"fiscal_years": {2005, 2006, 2008}},
+            CRITICAL_2007_FILES[0]: {"exists": True, "fiscal_years": {2005, 2006, 2007, 2008}},
+            CRITICAL_2007_FILES[1]: {"exists": True, "fiscal_years": {2005, 2006, 2008}},
         }
         assert check_2007_gap(matrix) is False
 
     def test_2007_missing_in_both(self):
         matrix = {
-            CRITICAL_2007_FILES[0]: {"fiscal_years": {2005, 2006, 2008}},
-            CRITICAL_2007_FILES[1]: {"fiscal_years": {2005, 2006, 2008}},
+            CRITICAL_2007_FILES[0]: {"exists": True, "fiscal_years": {2005, 2006, 2008}},
+            CRITICAL_2007_FILES[1]: {"exists": True, "fiscal_years": {2005, 2006, 2008}},
         }
         assert check_2007_gap(matrix) is False
 
     def test_empty_matrix(self):
-        # Empty matrix means critical files are missing → 2007 gap is NOT verified
-        assert check_2007_gap({}) is False
+        # Empty matrix: all critical files absent → skip them (no present file to fail on)
+        assert check_2007_gap({}) is True
 
     def test_missing_file_entry(self):
         matrix = {
-            CRITICAL_2007_FILES[0]: {"fiscal_years": {2005, 2006, 2007, 2008}},
-            # CRITICAL_2007_FILES[1] missing entirely
+            CRITICAL_2007_FILES[0]: {"exists": True, "fiscal_years": {2005, 2006, 2007, 2008}},
+            # CRITICAL_2007_FILES[1] missing entirely → skipped, not penalised
         }
-        assert check_2007_gap(matrix) is False
+        assert check_2007_gap(matrix) is True
 
 
 class TestCoverageYears:

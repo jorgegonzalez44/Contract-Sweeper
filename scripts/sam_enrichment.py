@@ -25,11 +25,12 @@ import os
 import re
 import sys
 import time
-import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime
 from pathlib import Path
+
+import requests as _requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -50,8 +51,8 @@ USAS_BASE_URL = "https://api.usaspending.gov/api/v2/recipient/search/"
 
 BATCH_SIZE = 25
 RATE_DELAY = 0.4
-RETRY_MAX = 3
-RETRY_DELAY = 2.0
+RETRY_MAX = 2        # was 3 — reduces timeout waste on failed lookups
+RETRY_DELAY = 1.0    # was 2.0
 MATCH_THRESHOLD = 0.85
 COVERAGE_GATE = 0.60
 
@@ -96,18 +97,14 @@ def vendor_hash(name: str) -> str:
 # API calls
 # ---------------------------------------------------------------------------
 
-def sam_call(params: dict, api_key: str, timeout: int = 12):
+def sam_call(params: dict, api_key: str, timeout: tuple = (5, 7)):
     """GET SAM.gov entity-information API. Returns parsed JSON or None."""
-    full_params = {"api_key": api_key}
-    full_params.update(params)
-    url = f"{SAM_BASE_URL}?{urllib.parse.urlencode(full_params)}"
-    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    full_params = {"api_key": api_key, **params}
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            if resp.status == 200:
-                return json.loads(resp.read().decode())
-    except urllib.error.HTTPError as e:
-        if e.code == 429:
+        resp = _requests.get(SAM_BASE_URL, params=full_params, timeout=timeout)
+        if resp.status_code == 200:
+            return resp.json()
+        if resp.status_code == 429:
             time.sleep(10)
     except Exception:
         pass
@@ -153,6 +150,7 @@ def sam_lookup_by_name(vendor_name: str, api_key: str) -> dict | None:
         if best and best_score >= MATCH_THRESHOLD:
             reg = best.get("entityRegistration", {})
             core = best.get("coreData", {})
+            parent = best.get("parentEntityInfo", {})
             return {
                 "uei": reg.get("ueiSAM", ""),
                 "cage": reg.get("cageCode", ""),
@@ -162,6 +160,8 @@ def sam_lookup_by_name(vendor_name: str, api_key: str) -> dict | None:
                 "status": reg.get("registrationStatus", ""),
                 "expiry": reg.get("registrationExpirationDate", ""),
                 "state": core.get("physicalAddress", {}).get("stateOrProvinceCode", ""),
+                "parent_uei": parent.get("ueiSAM", ""),
+                "parent_name": parent.get("legalBusinessName", ""),
             }
 
     return None
@@ -184,7 +184,7 @@ def usaspending_lookup(vendor_name: str) -> dict | None:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=6) as resp:
             if resp.status != 200:
                 return None
             data = json.loads(resp.read().decode())
@@ -193,15 +193,17 @@ def usaspending_lookup(vendor_name: str) -> dict | None:
                 return None
             best, best_score = None, 0.0
             for r in results:
-                score = name_similarity(norm, normalize_vendor(r.get("recipient_name", "")))
+                result_name = r.get("name") or r.get("recipient_name", "")
+                score = name_similarity(norm, normalize_vendor(result_name))
                 if score > best_score:
                     best_score, best = score, r
             if best and best_score >= MATCH_THRESHOLD:
+                matched_name = best.get("name") or best.get("recipient_name", "")
                 return {
                     "uei": best.get("uei", ""),
                     "duns": best.get("duns", ""),
                     "cage": "",
-                    "sam_name": best.get("recipient_name", ""),
+                    "sam_name": matched_name,
                     "match_score": round(best_score, 3),
                     "status": "USASPENDING",
                 }
@@ -304,8 +306,9 @@ def load_targets(root: Path) -> list[dict]:
 
 def write_index(results: dict, output_dir: Path) -> None:
     fieldnames = [
-        "vendor_name", "normalized_name", "uei", "cage", "duns",
+        "vendor_name", "normalized_name", "total_value", "uei", "cage", "duns",
         "sam_name", "match_score", "status", "expiry", "state",
+        "parent_uei", "parent_name",
         "source", "resolved_at",
     ]
     index_path = output_dir / "vendor_uei_index.csv"
@@ -338,7 +341,7 @@ def merge_into_master(results: dict, root: Path, output_dir: Path, logger) -> No
         fieldnames = reader.fieldnames or []
         rows = list(reader)
 
-    for col in ("recipient_uei", "recipient_cage", "recipient_duns"):
+    for col in ("recipient_uei", "recipient_cage", "recipient_duns", "parent_uei", "parent_name"):
         if col not in fieldnames:
             fieldnames.append(col)
 
@@ -352,6 +355,8 @@ def merge_into_master(results: dict, root: Path, output_dir: Path, logger) -> No
             row["recipient_uei"] = match.get("uei", "")
             row["recipient_cage"] = match.get("cage", "")
             row["recipient_duns"] = match.get("duns", "")
+            row["parent_uei"] = match.get("parent_uei", "")
+            row["parent_name"] = match.get("parent_name", "")
             patched += 1
 
     out_path = output_dir / "master_enriched.csv"
@@ -482,6 +487,7 @@ def run(root: Path = None, resume: bool = False, dry_run: bool = False, top_n: i
                 "uei": "", "cage": "", "duns": "",
                 "sam_name": "", "match_score": 0,
                 "status": "UNRESOLVED",
+                "parent_uei": "", "parent_name": "",
                 "source": "NONE",
                 "resolved_at": datetime.now().isoformat(),
             }
