@@ -176,7 +176,12 @@ def normalize_all(root: Path = None) -> list:
     logger = setup_logging("normalization_report")
 
     results = []
-    expected_files = [m["filename"] for m in DOWNLOAD_MANIFEST]
+    try:
+        from scripts.highergov_manifest import HIGHERGOV_MANIFEST
+    except Exception:
+        HIGHERGOV_MANIFEST = []
+
+    expected_files = [m["filename"] for m in DOWNLOAD_MANIFEST] + [m["filename"] for m in HIGHERGOV_MANIFEST]
 
     for fname in expected_files:
         input_path = expansion_dir / fname
