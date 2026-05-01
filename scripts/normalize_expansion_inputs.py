@@ -55,6 +55,88 @@ def derive_fiscal_year(date_series: pd.Series) -> pd.Series:
     return fy
 
 
+def normalize_highergov_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Heuristic cleanup for HigherGov-parsed tables.
+
+    Attempts to detect date, amount, and vendor columns from noisy PDF-derived CSVs.
+    Renames detected columns to standard names used downstream.
+    """
+    import re
+
+    n = len(df)
+    if n == 0:
+        return df
+
+    # date patterns: YYYY-MM-DD, MM/DD/YYYY, Month DD, YYYY
+    date_patterns = [r"\d{4}-\d{2}-\d{2}", r"\d{1,2}/\d{1,2}/\d{4}", r"[A-Za-z]{3,9} \d{1,2}, \d{4}"]
+    def col_date_score(col):
+        s = df[col].astype(str)
+        score = 0
+        for pat in date_patterns:
+            score += s.str.contains(pat).sum()
+        return score
+
+    date_col = None
+    best_date_score = 0
+    for c in df.columns:
+        sc = col_date_score(c)
+        if sc > best_date_score and sc / n >= 0.15:
+            best_date_score = sc
+            date_col = c
+
+    # amount detection: contains $ or commas + digits
+    def col_amount_score(col):
+        s = df[col].astype(str)
+        return s.str.contains(r"\$|\b\d{1,3}(,\d{3})+(\.\d+)?\b").sum()
+
+    amount_col = None
+    best_amount_score = 0
+    for c in df.columns:
+        sc = col_amount_score(c)
+        if sc > best_amount_score and sc / n >= 0.1:
+            best_amount_score = sc
+            amount_col = c
+
+    # vendor detection: column with many alphabetic words (heuristic)
+    def col_vendor_score(col):
+        s = df[col].astype(str)
+        return s.str.contains(r"[A-Za-z]{3,}").sum()
+
+    vendor_col = None
+    best_vendor_score = 0
+    for c in df.columns:
+        sc = col_vendor_score(c)
+        if sc > best_vendor_score and sc / n >= 0.2:
+            best_vendor_score = sc
+            vendor_col = c
+
+    rename_map = {}
+    if date_col and date_col != "award_date":
+        rename_map[date_col] = "award_date"
+    if amount_col and amount_col != "obligated_amount":
+        rename_map[amount_col] = "obligated_amount"
+    if vendor_col and vendor_col != "vendor_name":
+        rename_map[vendor_col] = "vendor_name"
+
+    if rename_map:
+        df = df.rename(columns=rename_map)
+
+    # If award_date exists but in weird format, try to coerce with pandas
+    if "award_date" in df.columns:
+        try:
+            df["award_date"] = pd.to_datetime(df["award_date"], errors="coerce", infer_datetime_format=True)
+        except Exception:
+            df["award_date"] = pd.NaT
+
+    # Clean amounts: remove $ and commas
+    if "obligated_amount" in df.columns:
+        df["obligated_amount"] = (
+            df["obligated_amount"].astype(str).str.replace(r"[^0-9.\-]", "", regex=True)
+        )
+
+    return df
+
+
 def normalize_file(input_path: Path, output_dir: Path, logger) -> dict:
     """
     Normalize a single expansion CSV. Returns a result dict.
