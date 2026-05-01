@@ -173,6 +173,12 @@ export SAM_API_KEY=your_key_here
 # Option B — .env file (gitignored, never committed)
 cp .env.example .env
 # edit .env and replace placeholder with real key
+
+# HigherGov API key (optional)
+# Option A — environment variable
+export HIGHERGOV_API_KEY=your_highergov_key_here
+# Option B — add to .env
+# Add a line to .env: HIGHERGOV_API_KEY=your_highergov_key_here
 ```
 
 **Running:**
