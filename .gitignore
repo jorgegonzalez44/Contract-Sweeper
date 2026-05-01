@@ -30,3 +30,9 @@ data/staging/processed/enrichment/
 /data/raw/SAM/*.dat
 .claude/
 data/.DS_Store
+
+# Local API key files (do not commit)
+FELT_API_KEY.txt
+HGOV_API_KEY.txt
+LDA_API_KEY.txt
+SAM_API_KEY.txt
