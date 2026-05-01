@@ -2,6 +2,11 @@ name: HigherGov fetch
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type 'YES' (case-insensitive) to confirm fetch"
+        required: true
+        default: "no"
 
 jobs:
   fetch_highergov:
@@ -20,6 +25,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Fetch HigherGov exports
+        if: ${{ secrets.HIGHERGOV_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') }}
         env:
           HIGHERGOV_API_KEY: ${{ secrets.HIGHERGOV_API_KEY }}
         run: |
@@ -27,6 +33,7 @@ jobs:
           python3 scripts/fetch_highergov_api.py
 
       - name: Upload HigherGov exports artifact
+        if: ${{ secrets.HIGHERGOV_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') }}
         uses: actions/upload-artifact@v4
         with:
           name: highergov-exports
