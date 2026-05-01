@@ -22,6 +22,21 @@ jobs:
           pip install -r requirements.txt
           pip install pytest-cov codecov
 
+      - name: Fetch HigherGov exports (optional)
+        if: ${{ secrets.HIGHERGOV_API_KEY != '' }}
+        env:
+          HIGHERGOV_API_KEY: ${{ secrets.HIGHERGOV_API_KEY }}
+        run: |
+          echo "Running optional HigherGov fetch..."
+          python3 scripts/fetch_highergov_api.py
+
+      - name: Upload HigherGov exports artifact
+        if: ${{ secrets.HIGHERGOV_API_KEY != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: highergov-exports
+          path: data/staging/expansion
+
       - name: Run tests with coverage
         run: |
           python -m pytest tests/ --maxfail=1 --disable-warnings -q --cov=scripts --cov-report=xml
