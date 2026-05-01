@@ -306,6 +306,10 @@ COLUMN_FAMILIES = {
         "Date Submitted",
         "last_modified_date",
         "Last Modified Date",
+        # HigherGov / opportunity fields
+        "posted_date",
+        "due_date",
+        "captured_date",
     ],
     "vendor": [
         "vendorname",
@@ -329,6 +333,10 @@ COLUMN_FAMILIES = {
         "maj_agency_cat",
         "Agency Name",
         "Awarding Sub Agency",
+        # HigherGov agency fields
+        "agency.agency_name",
+        "agency_name",
+        "agency.agency_abbreviation",
     ],
     "amount": [
         "dollars_obligated",
@@ -343,6 +351,11 @@ COLUMN_FAMILIES = {
         "current_total_value_of_award",
         "Total Obligation",
         "Current Award Amount",
+        # HigherGov fields
+        "val_est_low",
+        "val_est_high",
+        "value_est_low",
+        "value_est_high",
     ],
     "contract_id": [
         "piid",
@@ -355,6 +368,11 @@ COLUMN_FAMILIES = {
         "referenced_idv_piid",
         "idvpiid",
         "Award Unique Key",
+        # HigherGov opportunity identifiers
+        "source_id",
+        "source_id_version",
+        "opp_key",
+        "version_key",
     ],
     "pop_state": [
         "pop_state_code",
