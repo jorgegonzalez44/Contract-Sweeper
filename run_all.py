@@ -458,6 +458,117 @@ def main() -> int:
             validation_result = 1
 
     # ------------------------------------------------------------------
+    # Step 4.1: FDIC Mapper (deterministic normalization)
+    # ------------------------------------------------------------------
+    if args.skip_normalize:
+        logger.info("[Step 4.1/29] SKIPPED (--skip-normalize)\n")
+    else:
+        try:
+            fdic_inst_path = (root / "data" / "staging" / "processed" / "pr_fdic_institutions.csv")
+            fdic_fin_path = (root / "data" / "staging" / "processed" / "pr_fdic_financials.csv")
+            
+            fdic_mapped = 0
+            if fdic_inst_path.exists():
+                import pandas as pd
+                from scripts.fdic_mapper import map_fdic_resource
+                df = pd.read_csv(fdic_inst_path, low_memory=False)
+                _, report = map_fdic_resource(df, "institutions")
+                logger.info(f"[Step 4.1a] FDIC institutions: {report}")
+                if report.get("threshold_met"):
+                    fdic_mapped += 1
+                else:
+                    logger.warning(f"[Step 4.1a] FDIC institutions validation below threshold: {report.get('failed_dates')} {report.get('failed_amounts')}")
+            
+            if fdic_fin_path.exists():
+                import pandas as pd
+                from scripts.fdic_mapper import map_fdic_resource
+                df = pd.read_csv(fdic_fin_path, low_memory=False)
+                _, report = map_fdic_resource(df, "financials")
+                logger.info(f"[Step 4.1b] FDIC financials: {report}")
+                if report.get("threshold_met"):
+                    fdic_mapped += 1
+                else:
+                    logger.warning(f"[Step 4.1b] FDIC financials validation below threshold: {report.get('failed_dates')} {report.get('failed_amounts')}")
+            
+            logger.info(f"[Step 4.1/29] Done ({fdic_mapped} FDIC datasets validated).\n")
+        except Exception as e:
+            logger.error(f"[Step 4.1/29] FAILED: {e}")
+
+    # ------------------------------------------------------------------
+    # Step 4.2: EMMA Mapper (deterministic normalization)
+    # ------------------------------------------------------------------
+    if args.skip_normalize:
+        logger.info("[Step 4.2/29] SKIPPED (--skip-normalize)\n")
+    else:
+        try:
+            emma_bonds_path = (root / "data" / "staging" / "processed" / "pr_emma_bonds.csv")
+            emma_uw_path = (root / "data" / "staging" / "processed" / "pr_emma_underwriters.csv")
+            
+            emma_mapped = 0
+            if emma_bonds_path.exists():
+                import pandas as pd
+                from scripts.emma_mapper import map_emma_resource
+                df = pd.read_csv(emma_bonds_path)
+                _, report = map_emma_resource(df, "bonds")
+                logger.info(f"[Step 4.2a] EMMA bonds: {report}")
+                if report.get("threshold_met"):
+                    emma_mapped += 1
+                else:
+                    logger.warning(f"[Step 4.2a] EMMA bonds validation below threshold: {report.get('failed_dates')} {report.get('failed_amounts')}")
+            
+            if emma_uw_path.exists():
+                import pandas as pd
+                from scripts.emma_mapper import map_emma_resource
+                df = pd.read_csv(emma_uw_path)
+                _, report = map_emma_resource(df, "underwriters")
+                logger.info(f"[Step 4.2b] EMMA underwriters: {report}")
+                if report.get("threshold_met"):
+                    emma_mapped += 1
+                else:
+                    logger.warning(f"[Step 4.2b] EMMA underwriters validation below threshold: {report.get('failed_dates')} {report.get('failed_amounts')}")
+            
+            logger.info(f"[Step 4.2/29] Done ({emma_mapped} EMMA datasets validated).\n")
+        except Exception as e:
+            logger.error(f"[Step 4.2/29] FAILED: {e}")
+
+    # ------------------------------------------------------------------
+    # Step 4.3: CMS Mapper (deterministic normalization)
+    # ------------------------------------------------------------------
+    if args.skip_normalize:
+        logger.info("[Step 4.3/29] SKIPPED (--skip-normalize)\n")
+    else:
+        try:
+            cms_op_path = (root / "data" / "staging" / "processed" / "pr_cms_open_payments.csv")
+            cms_med_path = (root / "data" / "staging" / "processed" / "pr_cms_medicare_providers.csv")
+            
+            cms_mapped = 0
+            if cms_op_path.exists():
+                import pandas as pd
+                from scripts.cms_mapper import map_cms_resource
+                df = pd.read_csv(cms_op_path)
+                _, report = map_cms_resource(df, "open_payments")
+                logger.info(f"[Step 4.3a] CMS open_payments: {report}")
+                if report.get("threshold_met"):
+                    cms_mapped += 1
+                else:
+                    logger.warning(f"[Step 4.3a] CMS open_payments validation below threshold: {report.get('issues')}")
+            
+            if cms_med_path.exists():
+                import pandas as pd
+                from scripts.cms_mapper import map_cms_resource
+                df = pd.read_csv(cms_med_path)
+                _, report = map_cms_resource(df, "medicare")
+                logger.info(f"[Step 4.3b] CMS medicare: {report}")
+                if report.get("threshold_met"):
+                    cms_mapped += 1
+                else:
+                    logger.warning(f"[Step 4.3b] CMS medicare validation below threshold: {report.get('issues')}")
+            
+            logger.info(f"[Step 4.3/29] Done ({cms_mapped} CMS datasets validated).\n")
+        except Exception as e:
+            logger.error(f"[Step 4.3/29] FAILED: {e}")
+
+    # ------------------------------------------------------------------
     # Step 5: Normalize
     # ------------------------------------------------------------------
     if args.skip_normalize:
