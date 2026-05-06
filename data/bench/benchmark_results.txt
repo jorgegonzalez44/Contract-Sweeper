@@ -1,0 +1,10 @@
+Benchmark results:
+('normalize_file', 1000, 0.193601867000325, 1000)
+('derive_fiscal_year', 1000, 0.011676805000206514, None)
+('normalize_file', 10000, 0.8232368719995975, 10000)
+('derive_fiscal_year', 10000, 0.0029050129996903706, None)
+('normalize_file', 50000, 3.2402280830001473, 50000)
+('derive_fiscal_year', 50000, 0.007690845000070112, None)
+('deduplicate', 10000, 6.35757258600006, 2100)
+('deduplicate', 50000, 45.76412765099985, 10500)
+('deduplicate', 100000, 64.66887249000001, 21000)

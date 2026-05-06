@@ -50,15 +50,32 @@ with timing, coverage stats, and pass/fail status for each stage.
 ## Quick Start
 
 ```bash
-# Install dependencies
+# Create a virtualenv and install dependencies
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
-# Run the full pipeline
+# Run the full pipeline (all steps)
 python3 run_all.py
 
-# Or run only setup (directories + download instructions)
+# Run only setup (directories + download instructions)
 python3 run_all.py --only-setup
+
+# Common examples:
+# Skip automated downloads when you already have raw files
+python3 run_all.py --skip-download
+
+# Force re-download of raw datasets
+python3 run_all.py --force-download
+
+# Run normalization & downstream steps only
+python3 run_all.py --skip-download --skip-validation
+
+# Run enrichment dry-run (no external API calls)
+python3 scripts/sam_enrichment.py --dry-run
 ```
+
+After Step 2, detailed per-file download instructions are available at `data/staging/expansion/DOWNLOAD_INSTRUCTIONS.md`.
 
 After Step 2, detailed per-file download instructions are available at
 `data/staging/expansion/DOWNLOAD_INSTRUCTIONS.md`.
@@ -202,6 +219,16 @@ python3 scripts/sam_enrichment.py --top 500    # top 500 vendors by value only
 
 - **FPDS 500K row limit**: FPDS exports may cap at 500,000 rows. If a time window
   hits this limit, split into smaller date ranges and combine the CSVs.
+
+## Contributing
+
+Please read CONTRIBUTING.md for the full contribution workflow. Quick checklist:
+
+- Create a feature branch: git checkout -b feature/short-description
+- Run relevant tests locally: python3 -m pytest tests/ -q
+- Add tests for bug fixes or new features
+- Keep API keys out of git: use a local `.env` (see `.env.example`)
+- Open a PR with a clear description and small, focused commits
 
 ## Testing
 
