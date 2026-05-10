@@ -121,8 +121,8 @@ def validate_script_syntax(script_path: str) -> bool:
 # Main Test Runner
 # ---------------------------------------------------------------------------
 
-async def test_scripts(scripts: List[str], parallel: int = 1, force: bool = False, dry_run: bool = False) -> Dict[str, dict]:
-    """Test all specified scripts."""
+async def run_scripts(scripts: List[str], parallel: int = 1, force: bool = False, dry_run: bool = False) -> Dict[str, dict]:
+    """Run all specified scripts."""
     results = {}
 
     if dry_run:
@@ -223,7 +223,7 @@ def main():
     logger.info(f"Testing {len(scripts)} scripts with parallel={args.parallel}")
 
     # Run tests
-    results = asyncio.run(test_scripts(scripts, args.parallel, args.force, args.dry_run))
+    results = asyncio.run(run_scripts(scripts, args.parallel, args.force, args.dry_run))
 
     print_summary(results)
 

@@ -1,0 +1,18 @@
+phase: R4.10A
+owner: Contract Sweeper Team
+purpose: "Establish governance and promotion guard artifacts for production readiness."
+manifest:
+  - docs/phase_ledger.md
+  - docs/evidence_contract.yaml
+  - docs/production_promotion_guard.yaml
+  - data/review_queue/source_waiver_register.csv
+  - data/review_queue/release_blocker_matrix.csv
+  - contract_sweeper/governance/__init__.py
+  - contract_sweeper/governance/source_registry.py
+  - contract_sweeper/validation/production_promotion_guard.py
+  - scripts/run_source_registry_audit.py
+  - scripts/run_production_promotion_guard.py
+  - scripts/run_production_status_gate.py
+  - tests/test_source_registry.py
+  - tests/test_production_promotion_guard.py
+  - .github/workflows/production-guard.yml

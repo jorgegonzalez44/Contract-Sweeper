@@ -1,0 +1,9 @@
+{
+  "production_status": "NON_PRODUCTION_DIAGNOSTIC",
+  "downloads_executed": false,
+  "rows_ingested": 0,
+  "production_inputs_staged": 0,
+  "r5_blocked": true,
+  "tier0_missing_count": 0,
+  "blocked_required_source_count": 0
+}
