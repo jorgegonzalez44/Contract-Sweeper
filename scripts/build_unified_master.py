@@ -146,16 +146,26 @@ def apply_alias_registry(
     """
     name_map: dict[str, str] = {}
     uei_map: dict[str, str] = {}
+    type_map: dict[str, str] = {}
     for variant, entry in alias_registry.items():
         if entry.get("canonical_name"):
             name_map[variant] = entry["canonical_name"]
         if entry.get("canonical_uei"):
             uei_map[variant] = entry["canonical_uei"]
+        if entry.get("entity_type"):
+            type_map[variant] = entry["entity_type"]
 
     # Canonical name resolution
     resolved = df["recipient_name"].map(name_map)
     names_resolved = int(resolved.notna().sum())
     df["_canonical_name"] = resolved.fillna(df["recipient_name"])
+
+    # Entity type annotation (resolved via canonical name, then original name)
+    df["_entity_type"] = (
+        df["_canonical_name"].map(type_map)
+        .fillna(df["recipient_name"].map(type_map))
+        .fillna("unknown")
+    )
 
     # Fill missing UEIs from alias registry (do not overwrite existing values)
     empty_uei = df["recipient_uei"].isna() | (df["recipient_uei"].str.strip() == "")
@@ -404,9 +414,11 @@ def run(root=None) -> dict:
         except Exception as exc:
             logger.warning(f"  Alias registry apply failed: {exc} — skipping")
             unified["_canonical_name"] = unified["recipient_name"]
+        unified["_entity_type"] = "unknown"
     else:
         logger.info("  alias_registry.json not found — skipping alias resolution")
         unified["_canonical_name"] = unified["recipient_name"]
+        unified["_entity_type"] = "unknown"
 
     # ------------------------------------------------------------------
     # 6. Standardize pop_state
@@ -566,6 +578,7 @@ def run(root=None) -> dict:
         .groupby("_entity_key")
         .agg(
             canonical_name    = ("_canonical_name",    "first"),
+            entity_type       = ("_entity_type",       "first"),
             recipient_uei     = ("recipient_uei",      "first"),
             total_obligated   = ("_amount_num2",       "sum"),
             award_count       = ("award_id",           "nunique"),
@@ -585,8 +598,10 @@ def run(root=None) -> dict:
     logger.info(f"  Entity master: {entity_master_path.name} ({len(entity_master):,} unique entities)")
 
     summary["outputs"]["entity_master"] = str(entity_master_path)
-    unified.drop(columns=["_amount_num", "_amount_num2", "_canonical_name", "_entity_key"],
-                 inplace=True, errors="ignore")
+    unified.drop(
+        columns=["_amount_num", "_amount_num2", "_canonical_name", "_entity_key", "_entity_type"],
+        inplace=True, errors="ignore",
+    )
 
     logger.info(
         f"  Unified master complete: {total_rows:,} rows, "

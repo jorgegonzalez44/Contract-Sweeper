@@ -64,8 +64,63 @@ def load_hierarchy(root: Path) -> pd.DataFrame | None:
     return pd.read_csv(path, dtype=str, low_memory=False, keep_default_na=False)
 
 
-def build_graph(df: pd.DataFrame, hierarchy: pd.DataFrame | None, min_obligation: float) -> nx.DiGraph:
+def load_alias_registry(root: Path) -> dict:
+    """Load alias_registry.json → {variant_name: {canonical_name, canonical_uei, entity_type}}."""
+    path = root / "data" / "staging" / "processed" / "enrichment" / "alias_registry.json"
+    if not path.exists():
+        return {}
+    try:
+        import json as _json
+        return _json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def apply_vendor_aliases(df: pd.DataFrame, alias_registry: dict) -> pd.DataFrame:
+    """
+    Replace vendor_name variants with canonical parent entity names.
+
+    This causes subsidiary nodes (e.g. "Crowley Maritime Corp") to merge into
+    their parent nodes ("Crowley Holdings Inc") in the graph, aggregating all
+    contract edges at the parent level.
+    """
+    if not alias_registry:
+        return df
+    name_map = {k: v["canonical_name"] for k, v in alias_registry.items() if v.get("canonical_name")}
+    df = df.copy()
+    df["vendor_name"] = df["vendor_name"].map(name_map).fillna(df["vendor_name"])
+    return df
+
+
+def build_entity_type_index(alias_registry: dict) -> dict[str, str]:
+    """Return {canonical_name: entity_type} from the alias registry."""
+    index: dict[str, str] = {}
+    for entry in alias_registry.values():
+        cname = entry.get("canonical_name", "")
+        etype = entry.get("entity_type", "")
+        if cname and etype:
+            index[cname] = etype
+    return index
+
+
+def build_graph(
+    df: pd.DataFrame,
+    hierarchy: pd.DataFrame | None,
+    min_obligation: float,
+    entity_type_index: dict[str, str] | None = None,
+) -> nx.DiGraph:
+    """
+    Build a weighted directed vendor→agency award graph.
+
+    Parameters
+    ----------
+    entity_type_index : dict, optional
+        Maps canonical vendor name → entity_type ("government", "nonprofit",
+        "corporate", "unknown"). Produced by build_entity_type_index().
+        When provided, each vendor node receives an ``entity_type`` attribute.
+    """
     G = nx.DiGraph()
+    etype_index = entity_type_index or {}
 
     # Vendor → Agency edges
     edges = (
@@ -86,9 +141,10 @@ def build_graph(df: pd.DataFrame, hierarchy: pd.DataFrame | None, min_obligation
         weight = row["weight"]
 
         if not G.has_node(vendor):
-            G.add_node(vendor, node_type="vendor", label=vendor[:60])
+            etype = etype_index.get(vendor, "unknown")
+            G.add_node(vendor, node_type="vendor", entity_type=etype, label=vendor[:60])
         if not G.has_node(agency):
-            G.add_node(agency, node_type="agency", label=agency[:60])
+            G.add_node(agency, node_type="agency", entity_type="agency", label=agency[:60])
 
         G.add_edge(
             vendor, agency,
@@ -107,7 +163,8 @@ def build_graph(df: pd.DataFrame, hierarchy: pd.DataFrame | None, min_obligation
             if not child or not parent or child == parent:
                 continue
             if not G.has_node(parent):
-                G.add_node(parent, node_type="parent_entity", label=parent[:60])
+                etype = etype_index.get(parent, "unknown")
+                G.add_node(parent, node_type="parent_entity", entity_type=etype, label=parent[:60])
             G.add_edge(parent, child, edge_type="hierarchy", weight=1.0)
 
     return G
@@ -163,12 +220,19 @@ def run(root: Path = None, min_obligation: float = MIN_OBLIGATION_DEFAULT, top_n
 
     df = load_master(root)
     hierarchy = load_hierarchy(root)
+    alias_registry = load_alias_registry(root)
+
+    if alias_registry:
+        df = apply_vendor_aliases(df, alias_registry)
+        logger.info(f"  Alias registry: {len(alias_registry)} entries applied to vendor names")
+
+    entity_type_index = build_entity_type_index(alias_registry)
 
     if min_obligation > 0:
         df = df[df["obligated_amount"] >= min_obligation]
         logger.info(f"  Filtered to obligations ≥ ${min_obligation:,.0f}: {len(df):,} rows")
 
-    G = build_graph(df, hierarchy, min_obligation)
+    G = build_graph(df, hierarchy, min_obligation, entity_type_index=entity_type_index)
     logger.info(
         f"  Graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges "
         f"({G.number_of_nodes()} vendors/agencies)"
@@ -218,12 +282,18 @@ def run(root: Path = None, min_obligation: float = MIN_OBLIGATION_DEFAULT, top_n
     agency_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "agency"]
     parent_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "parent_entity"]
 
+    entity_type_counts: dict[str, int] = {}
+    for _, d in G.nodes(data=True):
+        et = d.get("entity_type", "unknown")
+        entity_type_counts[et] = entity_type_counts.get(et, 0) + 1
+
     summary = {
         "total_nodes": G.number_of_nodes(),
         "total_edges": G.number_of_edges(),
         "vendor_nodes": len(vendor_nodes),
         "agency_nodes": len(agency_nodes),
         "parent_entity_nodes": len(parent_nodes),
+        "entity_type_counts": entity_type_counts,
         "top_node_by_pagerank": top1.get("node", ""),
         "top_node_type": top1.get("node_type", ""),
         "outputs": {

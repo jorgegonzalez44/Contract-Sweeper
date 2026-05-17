@@ -205,3 +205,21 @@ class TestApplyAliasRegistry:
         )
         _, stats = apply_alias_registry(df, registry)
         assert stats["aliases_loaded"] == 3
+
+    def test_entity_type_column_populated_for_known_variant(self):
+        df = _make_df([{"recipient_name": "Microsoft Puerto Rico Inc"}])
+        registry = {
+            "Microsoft Puerto Rico Inc": {
+                "canonical_name": "Microsoft Corporation",
+                "canonical_uei": "MSFT1234",
+                "entity_type": "corporate",
+            }
+        }
+        df, _ = apply_alias_registry(df, registry)
+        assert "_entity_type" in df.columns
+        assert df["_entity_type"].iloc[0] == "corporate"
+
+    def test_entity_type_defaults_to_unknown_for_unregistered_name(self):
+        df = _make_df([{"recipient_name": "Mystery Corp"}])
+        df, _ = apply_alias_registry(df, {})
+        assert df["_entity_type"].iloc[0] == "unknown"
