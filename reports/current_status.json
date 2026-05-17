@@ -1,0 +1,54 @@
+{
+  "timestamp_utc": "2026-05-17T12:56:55.742010Z",
+  "active_vector": "VALIDATE_SYNCED_MAIN_BEFORE_STASH_REPLAY",
+  "working_directory": "/home/user/Contract-Sweeper",
+  "git_status": {
+    "cmd": "git status --short",
+    "exit_code": 0,
+    "stdout_tail": "",
+    "stderr_tail": ""
+  },
+  "head": {
+    "cmd": "git log --oneline --decorate -5",
+    "exit_code": 0,
+    "stdout_tail": "1c71f05 (HEAD -> claude/pre-pr3-entity-gate-tasks-lM1j4, origin/claude/pre-pr3-entity-gate-tasks-lM1j4) feat(pr3): entity_type in entity_master; alias-resolved typed graph nodes\n188a36f feat(pr2.6): wire validation gates into CI; feed alias registry into unified master\na0afa3f feat(pr2.6): entity-type-stratified validation gates, source registry\n58a799b feat(pr2.5): add parent_collapse.py and SAM parent resolution report\n3ef5429 (origin/main, main) post-10k cap\n",
+    "stderr_tail": ""
+  },
+  "stashes": {
+    "cmd": "git stash list | head -10",
+    "exit_code": 0,
+    "stdout_tail": "",
+    "stderr_tail": ""
+  },
+  "compile": {
+    "exit_code": 0,
+    "note": "python3 -m compileall scripts tests \u2014 clean"
+  },
+  "tests": {
+    "exit_code": 0,
+    "passed": 450,
+    "skipped": 4,
+    "failed": 0
+  },
+  "secret_scan": {
+    "exit_code": 0,
+    "result": "clean"
+  },
+  "gap_analysis": {
+    "total_scripts": 107,
+    "scripts_with_tests": 24,
+    "untested_referenced_in_run_all": 77,
+    "note": "Coverage gap is pre-existing; no regressions introduced on this branch"
+  },
+  "production_gate": {
+    "exit_code": 0,
+    "checks_passed": 14,
+    "checks_total": 14,
+    "all_entity_gates_pass": true,
+    "blockers": []
+  },
+  "stash_inspection": {
+    "note": "No stashes found (git stash list returned empty). stash@{0} and stash@{1} do not exist in this environment. The stash replay step in the original command is a no-op here."
+  },
+  "next_command": "PR #1 is open and being watched for CI/review activity. On review approval, merge into main and run run_all.py --skip-download to verify the full pipeline with the new entity gates."
+}
