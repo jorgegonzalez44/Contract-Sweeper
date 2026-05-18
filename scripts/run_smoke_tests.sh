@@ -17,7 +17,8 @@ pytest -q \
   tests/test_validate_coverage.py \
   tests/test_deduplicate_master.py \
   tests/test_sam_enrichment.py \
-  tests/test_validation_gates.py
+  tests/test_validation_gates.py \
+  tests/test_analyze_entity_profiles.py
 
 # --- Entity gate validation (live run; only when enrichment data is present) ---
 HIERARCHY="data/staging/processed/enrichment/entity_hierarchy.csv"
