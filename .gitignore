@@ -4,6 +4,8 @@ __pycache__/
 *.pyo
 .venv/
 venv/
+.coverage
+htmlcov/
 
 # Secrets — NEVER commit
 .env
