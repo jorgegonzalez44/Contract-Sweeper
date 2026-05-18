@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Require venv to be present; keeps CI and local behavior consistent
-if [ ! -f .venv/bin/activate ]; then
-  echo "No .venv found. Run: bash scripts/setup_env.sh" >&2
+# Activate .venv when available (local dev); fall back to system Python in CI
+if [ -f .venv/bin/activate ]; then
+  . .venv/bin/activate
+elif ! command -v pytest >/dev/null 2>&1; then
+  echo "No .venv and no pytest in PATH. Run: bash scripts/setup_env.sh" >&2
   exit 2
 fi
-
-. .venv/bin/activate
 
 pytest -q \
   tests/test_config.py \

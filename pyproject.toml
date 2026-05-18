@@ -26,6 +26,9 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.setuptools]
 # Find any packages if present; exclude tests and virtualenvs
 [tool.setuptools.packages.find]

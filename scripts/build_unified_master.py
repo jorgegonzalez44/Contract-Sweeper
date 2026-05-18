@@ -414,7 +414,7 @@ def run(root=None) -> dict:
         except Exception as exc:
             logger.warning(f"  Alias registry apply failed: {exc} — skipping")
             unified["_canonical_name"] = unified["recipient_name"]
-        unified["_entity_type"] = "unknown"
+            unified["_entity_type"] = "unknown"
     else:
         logger.info("  alias_registry.json not found — skipping alias resolution")
         unified["_canonical_name"] = unified["recipient_name"]
