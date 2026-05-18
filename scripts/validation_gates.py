@@ -35,7 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scripts.config import ENRICHMENT_OUTPUT_DIR, PROJECT_ROOT, setup_logging
+from scripts.config import PROJECT_ROOT, setup_logging
 from scripts.parent_collapse import classify_entity_type
 
 # ---------------------------------------------------------------------------

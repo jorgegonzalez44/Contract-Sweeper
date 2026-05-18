@@ -318,7 +318,7 @@ class TestRunIntegration:
              "business_types": "corporation", "total_obligation": "1000000"},
         ])
 
-        report = run(root=tmp_path, report_only=True)
+        run(root=tmp_path, report_only=True)
         report_path = manifests_dir / "validation_report.json"
         assert report_path.exists()
         data = json.loads(report_path.read_text())

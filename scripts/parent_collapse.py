@@ -20,12 +20,11 @@ import csv
 import json
 import re
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scripts.config import ENRICHMENT_OUTPUT_DIR, PROJECT_ROOT, setup_logging
+from scripts.config import PROJECT_ROOT, setup_logging
 
 # ---------------------------------------------------------------------------
 # Entity-type heuristics (mirrors PR2.6 classification logic)
