@@ -4,6 +4,7 @@ lxml>=4.9.0
 networkx>=3.0
 pytest>=7.0.0
 pytest-cov>=4.0.0
+pytest-xdist>=3.0
 rapidfuzz>=3.0.0
 ruff>=0.1.0
 python-dotenv>=1.0.0
