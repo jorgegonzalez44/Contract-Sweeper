@@ -1,0 +1,40 @@
+{
+  "run_timestamp": "2026-05-16T17:54:20Z",
+  "total_parent_entities": 19,
+  "gates": [
+    {
+      "name": "entity_type_assignment_rate",
+      "value": 1.0,
+      "threshold": 0.9,
+      "passed": true,
+      "direction": "gte",
+      "detail": "19/19 entities classified"
+    },
+    {
+      "name": "government_entity_classification_rate",
+      "value": 1.0,
+      "threshold": 0.95,
+      "passed": true,
+      "direction": "gte",
+      "detail": "4/4 government candidates correctly labelled"
+    },
+    {
+      "name": "corporate_parent_uei_rate",
+      "value": 0.8333,
+      "threshold": 0.5,
+      "passed": true,
+      "direction": "gte",
+      "detail": "10/12 corporate vendors have a distinct resolved parent_uei"
+    },
+    {
+      "name": "high_value_unresolved_review_rate",
+      "value": 0.0909,
+      "threshold": 0.1,
+      "passed": true,
+      "direction": "lte",
+      "detail": "1/11 non-root high-value corporate vendors unresolved. Needs review: V-COMS Inc"
+    }
+  ],
+  "overall_pass": true,
+  "blockers": []
+}

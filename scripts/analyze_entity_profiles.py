@@ -258,6 +258,30 @@ def build_profiles(root: Path = None) -> dict:
             on="normalized_name", how="left"
         )
 
+    # ------------------------------------------------------------------
+    # Join entity_master for entity_type (from alias registry resolution)
+    # ------------------------------------------------------------------
+    entity_master_path = processed_dir / "entity_master.csv"
+    if entity_master_path.exists():
+        try:
+            em = pd.read_csv(entity_master_path, dtype=str, low_memory=False)
+            em_join = (
+                em[["entity_key", "entity_type"]]
+                .dropna(subset=["entity_key"])
+                .drop_duplicates("entity_key")
+                .rename(columns={"entity_key": "normalized_name"})
+            )
+            merged = merged.merge(em_join, on="normalized_name", how="left")
+            merged["entity_type"] = merged["entity_type"].fillna("unknown")
+            typed = (merged["entity_type"] != "unknown").sum()
+            logger.info(f"  entity_master join: {typed:,}/{len(merged):,} entities typed")
+        except Exception as exc:
+            logger.warning(f"  entity_master join failed: {exc} — entity_type set to unknown")
+            merged["entity_type"] = "unknown"
+    else:
+        logger.info("  entity_master.csv not found — entity_type set to unknown")
+        merged["entity_type"] = "unknown"
+
     # Derived flags
     merged["is_nonprofit"] = merged.get("np_ein", pd.Series(dtype=str)).notna() & \
                              (merged.get("np_ein", pd.Series(dtype=str)) != "")

@@ -1,0 +1,123 @@
+# Source Registry — PR Federal Spending Pipeline
+# Defines data sources, their coverage targets, and entity gate thresholds.
+# Referenced by validation_gates.py and downstream reporting.
+
+metadata:
+  version: "2.6"
+  updated: "2026-05-16"
+  description: >
+    Entity-type-stratified gate configuration. Replaces the deprecated global
+    parent_uei_rate universal blocker (PR2.5 closeout).
+
+# ---------------------------------------------------------------------------
+# Entity classification gates (PR2.6 recalibration)
+# ---------------------------------------------------------------------------
+
+entity_gates:
+  entity_type_assignment_rate:
+    threshold: 0.90
+    direction: gte
+    description: >
+      Fraction of parent entities with a non-unknown entity_type classification.
+      A low rate indicates the classifier is failing or the enrichment data is
+      insufficient for type inference.
+
+  government_entity_classification_rate:
+    threshold: 0.95
+    direction: gte
+    description: >
+      Fraction of government-candidate entities correctly labelled as
+      entity_type='government'. Validates that authorities, municipalities,
+      and agencies are not misclassified as corporate.
+
+  corporate_parent_uei_rate:
+    threshold: 0.50
+    direction: gte
+    description: >
+      Fraction of corporate-classified vendors (raw hierarchy) with a distinct
+      resolved parent_uei. Government and nonprofit entities are excluded because
+      they do not have SAM parent UEIs by design. The former universal
+      parent_uei_rate gate incorrectly penalised these entity types.
+
+  high_value_unresolved_review_rate:
+    threshold: 0.10
+    direction: lte
+    high_value_floor_usd: 500_000_000
+    description: >
+      Fraction of non-root high-value corporate vendors (obligation >= $500M)
+      that remain unresolved (no distinct parent_uei). Entities that are
+      themselves a known parent are excluded. Values above 10% indicate that
+      significant spending entities require manual review before PR3 pipeline
+      proceeds.
+
+# ---------------------------------------------------------------------------
+# DEPRECATED gates (removed in PR2.6)
+# ---------------------------------------------------------------------------
+
+deprecated_gates:
+  parent_uei_rate:
+    removed_in: "2.6"
+    reason: >
+      Universal parent_uei_rate gate incorrectly blocked valid datasets where
+      government authorities and nonprofit universities (which have no SAM parent
+      UEI) comprised a significant fraction of vendors. Replaced by the four
+      entity-type-stratified gates above.
+
+# ---------------------------------------------------------------------------
+# Data sources and coverage targets
+# ---------------------------------------------------------------------------
+
+sources:
+  contracts:
+    label: "FPDS Federal Contracts"
+    master: "pr_contracts_master.csv"
+    coverage_target: 0.95
+    entity_type_mix:
+      government: 0.20
+      nonprofit: 0.15
+      corporate: 0.65
+
+  grants:
+    label: "USASpending.gov Grants"
+    master: "pr_grants_master.csv"
+    coverage_target: 0.90
+    entity_type_mix:
+      government: 0.40
+      nonprofit: 0.35
+      corporate: 0.25
+
+  subawards:
+    label: "FSRS Subawards"
+    master: "pr_subawards_master.csv"
+    coverage_target: 0.85
+    entity_type_mix:
+      government: 0.25
+      nonprofit: 0.30
+      corporate: 0.45
+
+  fema_pa:
+    label: "FEMA Public Assistance"
+    master: "pr_fema_pa_master.csv"
+    coverage_target: 0.90
+    entity_type_mix:
+      government: 0.60
+      nonprofit: 0.20
+      corporate: 0.20
+
+  sba_loans:
+    label: "SBA Disaster Loans"
+    master: "pr_sba_loans_master.csv"
+    coverage_target: 0.80
+    entity_type_mix:
+      government: 0.05
+      nonprofit: 0.10
+      corporate: 0.85
+
+  unified:
+    label: "Unified Awards Master"
+    master: "pr_all_awards_master.csv"
+    coverage_target: 0.92
+    entity_type_mix:
+      government: 0.30
+      nonprofit: 0.22
+      corporate: 0.48

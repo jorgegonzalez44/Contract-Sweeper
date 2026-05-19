@@ -26,6 +26,35 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 130
+exclude = ["build", ".venv", "venv", "venv_check", "venv_test", "data"]
+
+[tool.ruff.lint]
+# Ignore pre-existing style patterns used throughout the codebase
+ignore = [
+    "E402",   # module-level import not at top (sys.path.insert pattern)
+    "E501",   # line too long (pre-existing)
+    "E221",   # multiple spaces before operator (alignment style)
+    "E251",   # unexpected spaces around keyword parameter
+    "E272",   # multiple spaces before keyword
+    "E711",   # comparison to None using ==
+    "E712",   # comparison to True/False
+    "E701",   # multiple statements on one line (colon)
+    "E302",   # expected 2 blank lines
+    "E401",   # multiple imports on one line
+]
+
+[tool.ruff.lint.per-file-ignores]
+# tests: pytest/networkx imports look unused but support fixtures; minor pre-existing issues
+"tests/*.py" = ["F401", "F811", "E741"]
+# scripts/root: pre-existing quality debt (unused imports, f-strings, lambdas) addressed separately
+"scripts/*.py" = ["F401", "F541", "F841", "F821", "E731", "E722"]
+"run_all.py" = ["F401", "F541"]
+
 [tool.setuptools]
 # Find any packages if present; exclude tests and virtualenvs
 [tool.setuptools.packages.find]

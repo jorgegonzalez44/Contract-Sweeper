@@ -124,6 +124,64 @@ _POP_STATE_MAP = {
 }
 
 
+def apply_alias_registry(
+    df: "pd.DataFrame",
+    alias_registry: dict,
+) -> tuple["pd.DataFrame", dict]:
+    """
+    Canonicalize recipient names and fill missing UEIs using an alias registry.
+
+    The alias_registry maps variant names → {canonical_name, canonical_uei, entity_type}.
+    Produced by scripts/parent_collapse.py from USASpending parent resolution.
+
+    Returns
+    -------
+    df : DataFrame
+        Modified in-place copy with:
+        - ``recipient_uei`` filled where previously empty and alias has a UEI.
+        - ``_canonical_name`` column added: alias-resolved recipient_name (used
+          by the entity_master grouping step so variant names collapse correctly).
+    stats : dict
+        {names_resolved, ueis_filled, aliases_loaded}
+    """
+    name_map: dict[str, str] = {}
+    uei_map: dict[str, str] = {}
+    type_map: dict[str, str] = {}
+    for variant, entry in alias_registry.items():
+        if entry.get("canonical_name"):
+            name_map[variant] = entry["canonical_name"]
+        if entry.get("canonical_uei"):
+            uei_map[variant] = entry["canonical_uei"]
+        if entry.get("entity_type"):
+            type_map[variant] = entry["entity_type"]
+
+    # Canonical name resolution
+    resolved = df["recipient_name"].map(name_map)
+    names_resolved = int(resolved.notna().sum())
+    df["_canonical_name"] = resolved.fillna(df["recipient_name"])
+
+    # Entity type annotation (resolved via canonical name, then original name)
+    df["_entity_type"] = (
+        df["_canonical_name"].map(type_map)
+        .fillna(df["recipient_name"].map(type_map))
+        .fillna("unknown")
+    )
+
+    # Fill missing UEIs from alias registry (do not overwrite existing values)
+    empty_uei = df["recipient_uei"].isna() | (df["recipient_uei"].str.strip() == "")
+    alias_uei = df.loc[empty_uei, "recipient_name"].map(uei_map)
+    df.loc[empty_uei, "recipient_uei"] = alias_uei.fillna(
+        df.loc[empty_uei, "recipient_uei"]
+    )
+    ueis_filled = int((empty_uei & alias_uei.notna()).sum())
+
+    return df, {
+        "aliases_loaded": len(alias_registry),
+        "names_resolved": names_resolved,
+        "ueis_filled": ueis_filled,
+    }
+
+
 def _standardize_pop_state(series: pd.Series) -> pd.Series:
     """Normalize pop_state: 'Puerto Rico' → 'PR', '72' → 'PR'. Others unchanged."""
     def _norm(val):
@@ -339,6 +397,30 @@ def run(root=None) -> dict:
     unified["recipient_name_normalized"] = unified["recipient_name"].apply(_normalize_name)
 
     # ------------------------------------------------------------------
+    # 5c. Apply alias registry — canonicalize names, fill missing UEIs
+    # ------------------------------------------------------------------
+    alias_path = processed_dir / "enrichment" / "alias_registry.json"
+    if alias_path.exists():
+        try:
+            alias_registry = json.loads(alias_path.read_text(encoding="utf-8"))
+            unified, alias_stats = apply_alias_registry(unified, alias_registry)
+            # Re-normalize after canonicalization so entity_master groups correctly
+            unified["recipient_name_normalized"] = unified["_canonical_name"].apply(_normalize_name)
+            logger.info(
+                f"  Alias registry ({alias_stats['aliases_loaded']} entries): "
+                f"{alias_stats['names_resolved']:,} names canonicalized, "
+                f"{alias_stats['ueis_filled']:,} UEIs filled"
+            )
+        except Exception as exc:
+            logger.warning(f"  Alias registry apply failed: {exc} — skipping")
+            unified["_canonical_name"] = unified["recipient_name"]
+            unified["_entity_type"] = "unknown"
+    else:
+        logger.info("  alias_registry.json not found — skipping alias resolution")
+        unified["_canonical_name"] = unified["recipient_name"]
+        unified["_entity_type"] = "unknown"
+
+    # ------------------------------------------------------------------
     # 6. Standardize pop_state
     # ------------------------------------------------------------------
     unified["pop_state"] = _standardize_pop_state(unified["pop_state"])
@@ -475,8 +557,14 @@ def run(root=None) -> dict:
 
     # ------------------------------------------------------------------
     # 10b. Write entity_master.csv — one row per unique normalized entity
+    #      Groups by alias-resolved normalized name so that variant names
+    #      (e.g. "PRASA" and "Puerto Rico Aqueduct And Sewer Authority")
+    #      collapse into a single entity row when alias_registry.json is present.
     # ------------------------------------------------------------------
     unified["_amount_num2"] = pd.to_numeric(unified["obligated_amount"], errors="coerce").fillna(0.0)
+    # _canonical_name was set in step 5c (or defaulted to recipient_name)
+    # entity_key groups by the normalized alias-resolved name
+    unified["_entity_key"] = unified["_canonical_name"].apply(_normalize_name)
 
     def _yr_range(series):
         vals = pd.to_numeric(series, errors="coerce").dropna()
@@ -486,10 +574,11 @@ def run(root=None) -> dict:
         return str(lo) if lo == hi else f"{lo}-{hi}"
 
     entity_master = (
-        unified[unified["recipient_name_normalized"] != ""]
-        .groupby("recipient_name_normalized")
+        unified[unified["_entity_key"] != ""]
+        .groupby("_entity_key")
         .agg(
-            canonical_name    = ("recipient_name",     "first"),
+            canonical_name    = ("_canonical_name",    "first"),
+            entity_type       = ("_entity_type",       "first"),
             recipient_uei     = ("recipient_uei",      "first"),
             total_obligated   = ("_amount_num2",       "sum"),
             award_count       = ("award_id",           "nunique"),
@@ -500,7 +589,7 @@ def run(root=None) -> dict:
             fiscal_year_range = ("fiscal_year",        _yr_range),
         )
         .reset_index()
-        .rename(columns={"recipient_name_normalized": "entity_key"})
+        .rename(columns={"_entity_key": "entity_key"})
         .sort_values("total_obligated", ascending=False)
         .reset_index(drop=True)
     )
@@ -509,10 +598,10 @@ def run(root=None) -> dict:
     logger.info(f"  Entity master: {entity_master_path.name} ({len(entity_master):,} unique entities)")
 
     summary["outputs"]["entity_master"] = str(entity_master_path)
-    unified.drop(columns=["_amount_num2"], inplace=True, errors="ignore")
-
-    # Clean up temporary column
-    unified.drop(columns=["_amount_num"], inplace=True, errors="ignore")
+    unified.drop(
+        columns=["_amount_num", "_amount_num2", "_canonical_name", "_entity_key", "_entity_type"],
+        inplace=True, errors="ignore",
+    )
 
     logger.info(
         f"  Unified master complete: {total_rows:,} rows, "
