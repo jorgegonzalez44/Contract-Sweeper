@@ -3,8 +3,10 @@
 import csv
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 # Ensure project root is importable
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -91,3 +93,36 @@ def sample_usaspending_csv(tmp_project):
         w.writeheader()
         w.writerows(rows)
     return path
+
+
+# ---------------------------------------------------------------------------
+# Shared HTTP mock fixtures (Task 45)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def mock_requests_get():
+    """Patch requests.get globally. Yields the MagicMock for configuration."""
+    with patch("requests.get") as m:
+        yield m
+
+
+@pytest.fixture
+def mock_requests_session():
+    """Patch requests.Session globally. Yields the MagicMock for configuration."""
+    with patch("requests.Session") as m:
+        yield m
+
+
+# ---------------------------------------------------------------------------
+# Shared parquet fixture factory (Task 46)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def pq_factory(tmp_path):
+    """Write a DataFrame as parquet to tmp_path/rel_path. Returns the written path."""
+    def _write(df, rel_path):
+        from scripts.parquet_utils import pq_write
+        full = tmp_path / rel_path
+        full.parent.mkdir(parents=True, exist_ok=True)
+        return pq_write(df, full)
+    return _write
