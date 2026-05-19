@@ -140,9 +140,16 @@ def _build_linkage(df_v2, df_portal, df_cor3, df_contracts, df_entity, logger):
             contract_row = contract_lookup.get(norm_key, {})
             entity_row = entity_lookup.get(norm_key, {})
 
-            matched_cor3 = bool(cor3_row)
-            matched_contract = bool(contract_row)
-            matched_entity = bool(entity_row)
+            # Use isinstance check to handle pandas Series truthiness correctly
+            matched_cor3 = isinstance(cor3_row, pd.Series) or bool(cor3_row)
+            matched_contract = isinstance(contract_row, pd.Series) or bool(contract_row)
+            matched_entity = isinstance(entity_row, pd.Series) or bool(entity_row)
+
+            def _get(obj, key, default=""):
+                """Safe .get() that works for both dict and pandas Series."""
+                if isinstance(obj, pd.Series):
+                    return obj.get(key, default)
+                return obj.get(key, default) if obj else default
 
             if matched_contract or matched_entity:
                 link_confidence = "exact"
@@ -158,13 +165,13 @@ def _build_linkage(df_v2, df_portal, df_cor3, df_contracts, df_entity, logger):
                 "applicant_normalized":    norm_key,
                 "v2_project_amount":       r.get("project_amount", 0),
                 "v2_federal_share_obligated": r.get("federal_share_obligated", 0),
-                "portal_eligible_amount":  portal_row.get("eligible_amount", "") if portal_row else "",
-                "portal_federal_share":    portal_row.get("federal_share", "") if portal_row else "",
-                "cor3_project_id":         str(cor3_row.get("project_id", "")) if cor3_row else "",
-                "cor3_total_approved":     cor3_row.get("total_approved", "") if cor3_row else "",
-                "cor3_disbursement_rate":  cor3_row.get("disbursement_rate", "") if cor3_row else "",
-                "contract_id":             str(contract_row.get("award_id", "")) if contract_row else "",
-                "recipient_name":          str(contract_row.get("recipient_name", "")) if contract_row else "",
+                "portal_eligible_amount":  _get(portal_row, "eligible_amount", ""),
+                "portal_federal_share":    _get(portal_row, "federal_share", ""),
+                "cor3_project_id":         str(_get(cor3_row, "project_id", "")),
+                "cor3_total_approved":     _get(cor3_row, "total_approved", ""),
+                "cor3_disbursement_rate":  _get(cor3_row, "disbursement_rate", ""),
+                "contract_id":             str(_get(contract_row, "award_id", "")),
+                "recipient_name":          str(_get(contract_row, "recipient_name", "")),
                 "link_confidence":         link_confidence,
                 "matched_cor3":            matched_cor3,
                 "matched_contract":        matched_contract,
