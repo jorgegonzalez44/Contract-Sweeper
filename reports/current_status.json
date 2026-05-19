@@ -1,13 +1,13 @@
 {
-  "timestamp_utc": "2026-05-19T02:36:11Z",
-  "active_vector": "PRE_PR3_FOUNDATION_MERGED",
+  "timestamp_utc": "2026-05-19T02:45:00Z",
+  "active_vector": "POST_MERGE_MAIN_VERIFIED",
   "active_branch": "main",
   "working_directory": "/home/user/Contract-Sweeper",
   "merge_state": {
+    "main_head_sha": "5b6114d",
+    "merge_commit_sha": "8c58579fb68160df04d5db8d6bee77589b9c8fde",
     "merged_pr": 1,
     "merged_scope": "combined PR2.5 / PR2.6 / PR3-foundation",
-    "merge_commit_sha": "8c58579fb68160df04d5db8d6bee77589b9c8fde",
-    "head_sha_before_merge": "734ee08597706714ef05b342845b45f88fbad96c",
     "merged_at": "2026-05-19T02:36:11Z"
   },
   "completed": [
@@ -17,32 +17,31 @@
     "Alias registry support merged into build_unified_master.py",
     "Typed graph node propagation merged into network_graph.py",
     "CI dependency fixes merged: pytest-cov, ruff, networkx, .coverage/htmlcov gitignore handling",
-    "PR #1 merged as accepted combined PR2.5 / PR2.6 / PR3-foundation scope"
+    "PR #1 merged as accepted combined PR2.5 / PR2.6 / PR3-foundation scope",
+    "Post-merge main verification passed: tests, gates, secrets, working tree all clean"
   ],
-  "validation": {
-    "pr_ci": {
-      "head_sha": "734ee08597706714ef05b342845b45f88fbad96c",
-      "smoke": "success",
-      "ci": "success",
-      "test_3_11": "success",
-      "test_3_12": "success",
-      "lint": "success",
-      "security": "success"
+  "post_merge_verification": {
+    "verified_at": "2026-05-19T02:45:00Z",
+    "main_head_sha": "5b6114d",
+    "working_tree": "CLEAN",
+    "targeted_tests": "66 passed",
+    "targeted_test_files": [
+      "tests/test_validation_gates.py",
+      "tests/test_build_unified_master.py",
+      "tests/test_network_graph.py"
+    ],
+    "validation_gates_report_only": "4/4 PASS",
+    "validation_gate_details": {
+      "entity_type_assignment_rate": "1.0000 >= 0.90 PASS",
+      "government_entity_classification_rate": "1.0000 >= 0.95 PASS",
+      "corporate_parent_uei_rate": "0.8333 >= 0.50 PASS",
+      "high_value_unresolved_review_rate": "0.0909 <= 0.10 PASS (V-COMS Inc flagged for manual review)"
     },
-    "pre_merge_local_reported": {
-      "tests": "green locally before final push",
-      "coverage_artifact": ".coverage absent from HEAD and ignored",
-      "review_comments_unresolved": 0
-    }
+    "secret_scan": "CLEAN"
   },
-  "blocked": [
-    "Do not start PR3 deduplication until a fresh post-merge main verification vector is selected",
-    "Production master rebuild remains blocked until source inputs are validated",
-    "Any further PR3 work must start from fresh main and be scoped separately"
-  ],
-  "next_command": "EXECUTE_NEXT_VECTOR: POST_MERGE_MAIN_VERIFICATION → PULL_MAIN → VERIFY_WORKTREE_CLEAN → RUN_TARGETED_SMOKE_OR_FULL_TESTS → THEN_SELECT_NEXT_VECTOR",
+  "next_recommended_vector": "PR3_DEDUP_SCOPE_DEFINITION",
   "do_not_start": [
-    "PR3_DEDUP",
+    "PR3_DEDUP_IMPLEMENTATION",
     "SOURCE_INGESTION_TO_PRODUCTION_PATHS",
     "MODULE_ARCHIVE_MOVES_WITHOUT_GATE"
   ]
