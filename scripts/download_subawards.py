@@ -263,7 +263,7 @@ def download_window(
 ) -> dict:
     """Download subawards for one time window (two passes: grants then contracts)."""
     label = window["label"]
-    stats = {"window": label, "grant_rows": 0, "contract_rows": 0, "errors": []}
+    stats = {"window": label, "grants_rows": 0, "contracts_rows": 0, "errors": []}
 
     for type_group, type_codes in [
         ("grants", GRANT_TYPE_CODES),
@@ -382,9 +382,9 @@ def _run(root: Path = None, force: bool = False, fy_start: int = None) -> dict:
             stats = download_window(session, window, raw_dir, force, logger)
         except Exception as e:
             logger.error(f"  Unexpected error on window {window['label']}: {e}")
-            stats = {"window": window["label"], "grant_rows": 0, "contract_rows": 0, "errors": [str(e)]}
+            stats = {"window": window["label"], "grants_rows": 0, "contracts_rows": 0, "errors": [str(e)]}
 
-        total_rows += stats.get("grant_rows", 0) + stats.get("contract_rows", 0)
+        total_rows += stats.get("grants_rows", 0) + stats.get("contracts_rows", 0)
         all_errors.extend(stats["errors"])
         window_stats.append(stats)
         logger.info("")
