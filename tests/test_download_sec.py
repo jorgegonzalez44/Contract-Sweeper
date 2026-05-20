@@ -480,7 +480,7 @@ def test_run_force_financial_columns_present(tmp_path):
          patch("scripts.download_sec._discover_pr_filers", return_value=[]), \
          patch("scripts.download_sec._get", side_effect=fake_get):
         mock_log.return_value = MagicMock()
-        result = run(root=tmp_path, force=True)
+        run(root=tmp_path, force=True)
 
     raw_fin = tmp_path / "data" / "staging" / "raw" / "sec" / "pr_sec_financials.csv"
     if raw_fin.stat().st_size > 5:  # non-trivial file

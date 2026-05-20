@@ -367,21 +367,23 @@ class TestRunWithMockedHttp:
         """Records with the same grant_number from different sources are deduplicated."""
         from datetime import date
         shared_grant = "B-17-DL-72-0001"
-        make_rec = lambda src: {
-            "grant_number": shared_grant,
-            "grantee_name": "PR",
-            "grantee_normalized": "PR",
-            "disaster_number": "",
-            "appropriation_year": 2017,
-            "award_date": "2017-01-01",
-            "grant_amount": 1_000_000.0,
-            "amount_drawn": None,
-            "amount_remaining": None,
-            "program_type": "CDBG-DR",
-            "cfda_number": "14.269",
-            "source_system": src,
-            "pull_date": str(date.today()),
-        }
+
+        def make_rec(src):
+            return {
+                "grant_number": shared_grant,
+                "grantee_name": "PR",
+                "grantee_normalized": "PR",
+                "disaster_number": "",
+                "appropriation_year": 2017,
+                "award_date": "2017-01-01",
+                "grant_amount": 1_000_000.0,
+                "amount_drawn": None,
+                "amount_remaining": None,
+                "program_type": "CDBG-DR",
+                "cfda_number": "14.269",
+                "source_system": src,
+                "pull_date": str(date.today()),
+            }
 
         with patch("scripts.download_hud_drgr_public._fetch_usaspending", return_value=[make_rec("USASpending")]), \
              patch("scripts.download_hud_drgr_public._fetch_egis", return_value=[make_rec("HUD_EGIS")]), \

@@ -467,7 +467,7 @@ class TestRunWithMockedHttp:
                 results=[sample], has_next=False
             )
 
-            summary = run(root=tmp_path)
+            run(root=tmp_path)
 
         # HTTP POST must have been called at least once (for a non-cached window)
         assert mock_session.post.called
@@ -480,7 +480,6 @@ class TestRunWithMockedHttp:
         raw_dir, processed_dir = self._setup_dirs(tmp_path)
 
         sample_pop = self._sample_result("POP-001")
-        sample_rec = self._sample_result("REC-001")
 
         with patch("scripts.download_hud.requests.Session") as mock_session_cls:
             mock_session = MagicMock()
@@ -492,7 +491,7 @@ class TestRunWithMockedHttp:
             # Only test the first window to keep the test fast
             from scripts.download_hud import _run
             with patch("scripts.download_hud.TIME_WINDOWS", [TIME_WINDOWS[0]]):
-                summary = _run(root=tmp_path, force=True)
+                _run(root=tmp_path, force=True)
 
         label = TIME_WINDOWS[0]["label"]
         assert (raw_dir / f"hud_pop_{label}.csv").exists()

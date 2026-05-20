@@ -434,7 +434,7 @@ class TestRunWithMockedHttp:
         with patch("scripts.download_doe.requests.Session") as mock_session_cls:
             self._setup_mock_session(mock_session_cls, results)
             with patch("scripts.download_doe.time.sleep"):  # skip real sleeps
-                summary = run(root=tmp_path)
+                run(root=tmp_path)
 
         # At least some raw files should exist
         assert raw_dir.exists()

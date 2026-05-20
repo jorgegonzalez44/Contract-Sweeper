@@ -519,7 +519,7 @@ class TestRunWithMockedHttp:
         with patch("scripts.download_compras._session") as mock_session_fn, \
              patch("scripts.download_compras.time.sleep"):
             mock_session_fn.return_value = _make_mock_session(rfp_records=rfp_records)
-            result = run(root=tmp_path, force=True, max_pages=1)
+            run(root=tmp_path, force=True, max_pages=1)
 
         rfp_csv = tmp_path / "data" / "staging" / "processed" / "pr_compras_rfps.csv"
         assert rfp_csv.exists()
@@ -537,7 +537,7 @@ class TestRunWithMockedHttp:
         with patch("scripts.download_compras._session") as mock_session_fn, \
              patch("scripts.download_compras.time.sleep"):
             mock_session_fn.return_value = _make_mock_session(award_records=award_records)
-            result = run(root=tmp_path, force=True, max_pages=1)
+            run(root=tmp_path, force=True, max_pages=1)
 
         award_csv = tmp_path / "data" / "staging" / "processed" / "pr_compras_awards.csv"
         assert award_csv.exists()
