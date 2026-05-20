@@ -23,7 +23,14 @@ jobs:
       - name: Run tests
         run: |
           pip install coverage pytest-cov pytest-xdist
-          pytest -q -n auto --cov=scripts --cov-report=term-missing --cov-fail-under=30
+          pytest -q -n auto --cov=scripts --cov-report=term-missing --cov-report=xml --cov-fail-under=40
+
+      - name: Upload coverage report
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
 
   lint:
     runs-on: ubuntu-latest
