@@ -1,5 +1,5 @@
 {
-  "run_timestamp": "2026-05-19T02:39:01Z",
+  "run_timestamp": "2026-05-20T00:00:00Z",
   "total_parent_entities": 19,
   "gates": [
     {
@@ -32,9 +32,18 @@
       "threshold": 0.1,
       "passed": true,
       "direction": "lte",
-      "detail": "1/11 non-root high-value corporate vendors unresolved. Needs review: V-COMS Inc"
+      "detail": "1/11 non-root high-value corporate vendors unresolved. Needs review: V-COMS Inc (UEI: VCOMS5L8Q2V7). SAM.gov lookup attempted 2026-05-20 — blocked by container network policy (outbound HTTP not permitted). To resolve locally: set SAM_API_KEY env var and run: python3 scripts/sam_enrichment.py --top 1; then python3 scripts/parent_collapse.py; then python3 scripts/validation_gates.py --report-only"
     }
   ],
   "overall_pass": true,
-  "blockers": []
+  "blockers": [],
+  "resolution_notes": {
+    "vcoms_inc": {
+      "uei": "VCOMS5L8Q2V7",
+      "status": "lookup_attempted",
+      "attempted": "2026-05-20",
+      "result": "blocked_network_policy",
+      "action_required": "Run sam_enrichment.py locally with SAM_API_KEY set, then re-run parent_collapse.py and validation_gates.py --report-only to populate parent_uei and drive gate to 0/11"
+    }
+  }
 }
