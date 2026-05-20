@@ -3,8 +3,8 @@
 # Referenced by validation_gates.py and downstream reporting.
 
 metadata:
-  version: "2.6"
-  updated: "2026-05-16"
+  version: "2.7"
+  updated: "2026-05-20"
   description: >
     Entity-type-stratified gate configuration. Replaces the deprecated global
     parent_uei_rate universal blocker (PR2.5 closeout).
@@ -49,6 +49,32 @@ entity_gates:
       themselves a known parent are excluded. Values above 10% indicate that
       significant spending entities require manual review before PR3 pipeline
       proceeds.
+
+  alias_dedup_reduction_rate:
+    threshold: 0.30
+    direction: lte
+    expected_min: 0.05
+    expected_max: 0.15
+    description: >
+      PR3 alias-dedup gate. Measures (pre_count - post_count) / pre_count
+      after collapsing entity_master rows whose _entity_key values map to the
+      same canonical name via alias_registry.json. A rate above 0.30 indicates
+      a likely join bug (too many rows collapsed). A rate below expected_min (0.05)
+      is a warning that alias expansion may be incomplete.
+    merge_strategy:
+      group_by: "_canonical_name"
+      total_obligated: sum
+      award_count: sum
+      source_datasets: union
+      awarding_agencies: union
+      first_award_date: min
+      last_award_date: max
+      entity_type: first_non_unknown
+    files_to_change:
+      - scripts/build_unified_master.py
+      - scripts/validation_gates.py
+      - tests/test_build_unified_master.py
+    status: APPROVED_SCOPE_PENDING_IMPL
 
 # ---------------------------------------------------------------------------
 # DEPRECATED gates (removed in PR2.6)
