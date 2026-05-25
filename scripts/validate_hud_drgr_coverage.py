@@ -64,11 +64,13 @@ def _load_csv(path, logger):
 
 def run(root=None, force=False):
     root = Path(root or PROJECT_ROOT)
-    VALIDATION_DIR.mkdir(parents=True, exist_ok=True)
-    REVIEW_DIR.mkdir(parents=True, exist_ok=True)
+    validation_dir = root / "data" / "validation"
+    review_dir     = root / "data" / "review"
+    validation_dir.mkdir(parents=True, exist_ok=True)
+    review_dir.mkdir(parents=True, exist_ok=True)
 
-    gap_path      = root / "data" / "validation" / "hud_drgr_gap_report.csv"
-    unlinked_path = root / "data" / "review" / "hud_drgr_unlinked_activities.csv"
+    gap_path      = validation_dir / "hud_drgr_gap_report.csv"
+    unlinked_path = review_dir / "hud_drgr_unlinked_activities.csv"
     logger = setup_logging("validate_hud_drgr_coverage")
 
     if gap_path.exists() and not force:
