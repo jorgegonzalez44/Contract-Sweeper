@@ -1,8 +1,8 @@
 {
   "generated": "2026-05-20T00:00:00Z",
-  "last_updated": "2026-05-25T22:00:00Z",
+  "last_updated": "2026-05-25T23:30:00Z",
   "session_branch": "claude/pre-pr3-entity-gate-tasks-lM1j4",
-  "main_sha": "c4e398fc9a59a37bfb0a9473962e246082223b8b",
+  "main_sha": "f41db99d9ad4bc1e13a7d00e1b42246f1e77ff9b",
   "status_legend": {
     "DONE": "merged into main",
     "OPEN": "branch exists, not yet in a PR",
@@ -19,7 +19,7 @@
     {"id": 4,  "status": "DONE", "pr": 7, "branch": "claude/int4-individual-test-batch",    "description": "tests/test_analyze_fec_crossref.py"},
     {"id": 5,  "status": "DONE", "pr": 7, "branch": "claude/int4-individual-test-batch",    "description": "tests/test_analyze_prime_sub.py"},
     {"id": 6,  "status": "BLOCKED", "branch": null,                                          "description": "PR3 dedup scope (deferred → Task 91)", "blocker": "deferred"},
-    {"id": 7,  "status": "BLOCKED", "branch": null,                                          "description": "PR3 dedup impl (deferred → Task 92)", "blocker": "awaiting_explicit_user_approval"},
+    {"id": 7,  "status": "DONE", "pr": 10, "branch": "claude/task92-pr3-dedup-impl",          "description": "PR3 dedup impl — resolved via T92 (alias_dedup_reduction_rate gate in build_unified_master)"},
     {"id": 8,  "status": "DONE", "pr": 7, "branch": "claude/int4-individual-test-batch",    "description": "tests/test_entity_resolution.py"},
     {"id": 9,  "status": "DONE", "pr": 7, "branch": "claude/int4-individual-test-batch",    "description": "tests/test_normalize_hud_drgr.py"},
     {"id": 10, "status": "DONE", "pr": 7, "branch": "claude/int4-individual-test-batch",    "description": "tests/test_build_financial_flows_master.py + scripts/build_financial_flows_master.py"},
@@ -104,7 +104,7 @@
     {"id": 89, "status": "DONE", "pr": 5, "branch": "claude/tasks78-90-download-tests-batch", "description": "tests/test_download_research.py"},
     {"id": 90, "status": "DONE", "pr": 5, "branch": "claude/tasks78-90-download-tests-batch", "description": "tests/test_download_slfrf.py"},
     {"id": 91, "status": "DONE", "pr": 9, "branch": "claude/task91-scope-only",               "description": "data/source_registry.yaml — alias_dedup_reduction_rate gate (APPROVED_SCOPE_PENDING_IMPL)"},
-    {"id": 92, "status": "BLOCKED", "branch": null,                                            "description": "PR3 dedup implementation — build_unified_master.py changes", "blocker": "awaiting_explicit_user_approval"},
+    {"id": 92, "status": "DONE", "pr": 10, "branch": "claude/task92-pr3-dedup-impl",           "description": "alias_dedup_reduction_rate gate in build_unified_master.py — merged PR #10 (f41db99)"},
     {"id": 93, "status": "DOCUMENTED_BLOCKED", "branch": "claude/task93-vcoms-resolution",     "description": "V-COMS SAM lookup — documented in validation_report.json via INT-0; live resolution blocked by container network policy.", "blocker": "container_network_policy"},
     {"id": 94, "status": "SUPERSEDED", "branch": "claude/task94-ci-coverage-30",              "description": "superseded by T100 (incremental threshold raises)"},
     {"id": 95, "status": "SUPERSEDED", "branch": "claude/task95-pipeline-smoke",              "description": "superseded by PR #6 (tasks96-99 branch includes test_pipeline_smoke.py)"},
@@ -112,7 +112,7 @@
     {"id": 97, "status": "DONE", "pr": 6, "branch": "claude/tasks96-99-download-tests",       "description": "tests/test_download_va.py + tests/test_download_usace_permits.py"},
     {"id": 98, "status": "DONE", "pr": 6, "branch": "claude/tasks96-99-download-tests",       "description": "tests/test_download_lihtc.py + tests/test_download_cabilderos.py + tests/test_download_active_contractors.py"},
     {"id": 99, "status": "DONE", "pr": 6, "branch": "claude/tasks96-99-download-tests",       "description": "tests/test_download_rum_coverover.py + tests/test_download_promesa_creditors.py"},
-    {"id": 100, "status": "PARTIALLY_INTEGRATED", "branch": "claude/tasks96-99-download-tests", "description": "CI artifact upload + coverage gate at 15% on main. Raise to 20% after this merge, to 30% once all tests stable, to 40% as final target."}
+    {"id": 100, "status": "IN_PR", "pr": 11, "branch": "claude/ci-gate-20pct",                "description": "CI gate ladder — 15%→20% in PR #11 (queued). Next: 20%→30% after script-coverage work. Final target: 40%."}
   ],
   "hotfixes": [
     {
@@ -192,28 +192,46 @@
       "status": "MERGED",
       "pr": 9,
       "merge_commit": "c4e398fc9a59a37bfb0a9473962e246082223b8b",
-      "description": "T91: alias_dedup_reduction_rate gate in data/source_registry.yaml. YAML-only; T92 (impl) remains BLOCKED.",
+      "description": "T91: alias_dedup_reduction_rate gate in data/source_registry.yaml.",
       "tasks_covered": [91],
       "ci": "lint/security/smoke green; merged by user request"
+    },
+    {
+      "id": "T92-IMPL",
+      "branch": "claude/task92-pr3-dedup-impl",
+      "status": "MERGED",
+      "pr": 10,
+      "merge_commit": "f41db99d9ad4bc1e13a7d00e1b42246f1e77ff9b",
+      "description": "T92: alias_dedup_reduction_rate gate check in build_unified_master.py. 45 tests pass (5 new gate tests).",
+      "tasks_covered": [7, 92],
+      "ci": "queued at merge; 45 local tests passed"
+    },
+    {
+      "id": "T100-GATE-20",
+      "branch": "claude/ci-gate-20pct",
+      "status": "IN_CI",
+      "pr": 11,
+      "description": "T100 ladder step 1: raise --cov-fail-under 15%→20% in .github/workflows/tests.yml.",
+      "tasks_covered": [100],
+      "ci": "queued"
     }
   ],
   "summary": {
     "total_tasks": 100,
-    "done": 90,
+    "done": 92,
+    "in_pr": 1,
     "open": 1,
     "integrated": 1,
-    "partially_integrated": 1,
     "documented_blocked": 1,
-    "blocked": 4,
+    "blocked": 2,
     "superseded": 2,
     "permanently_blocked": [
-      {"id": 92, "reason": "awaiting explicit 'T92 approved' from user before any build_unified_master.py changes"},
       {"id": 93, "reason": "V-COMS live SAM lookup blocked by container network policy; run locally with SAM_API_KEY"}
     ],
     "next_steps": [
-      "Raise --cov-fail-under from 15% to 20% (one-line PR to .github/workflows/tests.yml)",
+      "Merge PR #11 (CI gate 15%→20%) once CI confirms coverage ≥ 20%",
       "Investigate T82 (test_download_municipal.py) — confirm if in tasks78-90 branch or needs own branch",
-      "T92: awaiting user approval to start dedup implementation"
+      "Raise gate 20%→30% after additional script-coverage work lands"
     ]
   }
 }
