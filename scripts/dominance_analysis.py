@@ -109,7 +109,10 @@ def compute_hhi_per_agency(df: pd.DataFrame) -> pd.DataFrame:
             "top_vendor": top_vendor,
             "top_vendor_share_pct": round(top_share, 2),
         })
-    return pd.DataFrame(results).sort_values("hhi", ascending=False)
+    result_df = pd.DataFrame(results)
+    if result_df.empty:
+        return result_df
+    return result_df.sort_values("hhi", ascending=False)
 
 
 def compute_yoy_trends(df: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
@@ -219,12 +222,12 @@ def run(root: Path = None, top_n: int = TOP_N_DEFAULT) -> dict:
         "total_rows": len(df),
         "unique_vendors": int(df["vendor_name"].nunique()),
         "unique_agencies": int(df["agency_name"].nunique()),
-        "total_obligation_usd": round(total_obligation, 2),
-        "top3_vendor_share_pct": round(top3_share, 2),
+        "total_obligation_usd": float(round(total_obligation, 2)),
+        "top3_vendor_share_pct": float(round(top3_share, 2)),
         "top_vendor": top_raw.iloc[0]["vendor_name"] if len(top_raw) else "",
-        "top_vendor_obligation": round(top_raw.iloc[0]["total_obligation"], 2) if len(top_raw) else 0,
+        "top_vendor_obligation": float(round(top_raw.iloc[0]["total_obligation"], 2)) if len(top_raw) else 0,
         "high_hhi_agencies": int(len(high_hhi)),
-        "fiscal_years": sorted(df["fiscal_year"].dropna().astype(int).unique().tolist()),
+        "fiscal_years": [int(y) for y in sorted(df["fiscal_year"].dropna().unique())],
         "outputs": outputs,
     }
     summary_path = output_dir / "dominance_summary.json"

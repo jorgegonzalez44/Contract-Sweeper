@@ -169,9 +169,16 @@ def _map_to_schema(df, col_map, columns, source_file):
     return result[columns]
 
 
-def _find_raw_files(logger):
+def _find_raw_files(logger, root=None):
+    root = Path(root or PROJECT_ROOT)
+    raw_dirs = [
+        root / "data" / "raw" / "HUD DRGR",
+        root / "data" / "raw" / "HUD",
+        root / "data" / "raw" / "hud_drgr",
+        root / "data" / "raw" / "hud",
+    ]
     found = []
-    for raw_dir in RAW_DIRS:
+    for raw_dir in raw_dirs:
         if not raw_dir.exists():
             continue
         for pattern in ("*.xlsx", "*.xls", "*.csv"):
@@ -204,7 +211,7 @@ def run(root=None, force=False):
         logger.info(f"  HUD DRGR exports: {a_rows:,} activities — skipping (use --force).")
         return {"activity_rows": a_rows, "drawdown_rows": 0, "appropriation_rows": 0, "status": "CACHED"}
 
-    files = _find_raw_files(logger)
+    files = _find_raw_files(logger, root=root)
 
     activity_dfs, drawdown_dfs, appropriation_dfs = [], [], []
 

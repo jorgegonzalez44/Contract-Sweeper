@@ -102,7 +102,7 @@ def _ingest_fema_pa(df_v2, df_portal, df_linkage, logger):
             pw = str(r.get("pw_number", "")).strip()
             dis = str(r.get("disaster_number", "")).strip()
             if pw:
-                linkage_lookup[(pw, dis)] = r
+                linkage_lookup[(pw, dis)] = r.to_dict()
 
     for _, r in df_v2.iterrows():
         pw  = str(r.get("pw_number", "")).strip()
