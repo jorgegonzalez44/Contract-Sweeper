@@ -91,7 +91,6 @@ class TestGenerateReportSmoke:
         from scripts.generate_report import run
         (tmp_path / "data" / "staging" / "processed").mkdir(parents=True)
         run(root=tmp_path)
-        report_dir = tmp_path / "data" / "reports"
         # At least one output file created under data/
         outputs = list((tmp_path / "data").rglob("*.md")) + list(
             (tmp_path / "data").rglob("*.json")
