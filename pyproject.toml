@@ -29,6 +29,13 @@ classifiers = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.coverage.run]
+source = ["scripts"]
+omit = ["scripts/test_all_downloads.py"]
+
+[tool.coverage.report]
+exclude_lines = ["if __name__ == .__main__.:"]
+
 [tool.ruff]
 line-length = 130
 exclude = ["build", ".venv", "venv", "venv_check", "venv_test", "data"]

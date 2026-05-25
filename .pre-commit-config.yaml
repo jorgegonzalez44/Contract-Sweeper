@@ -20,3 +20,9 @@ repos:
         entry: detect-private-key
         language: python
         types: [text]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.0
+    hooks:
+      - id: ruff
+        args: [--fix]
