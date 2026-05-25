@@ -343,3 +343,94 @@ class TestRunIntegration:
         self._setup(tmp_path)
         result = run(root=tmp_path)
         assert isinstance(result, dict)
+
+    # -----------------------------------------------------------------------
+    # T92 — alias_dedup_reduction_rate gate tests
+    # -----------------------------------------------------------------------
+
+    def test_alias_dedup_gate_absent_when_no_registry(self, tmp_path):
+        """alias_dedup_gate is empty dict when alias_registry.json does not exist."""
+        self._setup(tmp_path)
+        result = run(root=tmp_path)
+        assert result.get("alias_dedup_gate") == {}
+
+    def test_alias_dedup_gate_present_in_summary_json(self, tmp_path):
+        """alias_dedup_gate key is written to pr_all_awards_summary.json."""
+        processed = self._setup(tmp_path)
+        enrichment = processed / "enrichment"
+        enrichment.mkdir()
+        registry = {
+            "PRASA": {
+                "canonical_name": "Puerto Rico Aqueduct And Sewer Authority",
+                "canonical_uei": "PRASA00000001",
+                "entity_type": "government",
+            }
+        }
+        (enrichment / "alias_registry.json").write_text(json.dumps(registry), encoding="utf-8")
+        _write_contracts(processed, [
+            {"contract_id": "C001", "vendor_name": "PRASA"},
+            {"contract_id": "C002", "vendor_name": "Other Entity"},
+        ])
+        run(root=tmp_path)
+        summary_data = json.loads((processed / "pr_all_awards_summary.json").read_text())
+        assert "alias_dedup_gate" in summary_data
+
+    def test_alias_dedup_gate_pass_for_normal_reduction(self, tmp_path):
+        """Gate passes when alias reduction rate is within expected 5–15% range."""
+        processed = self._setup(tmp_path)
+        enrichment = processed / "enrichment"
+        enrichment.mkdir()
+        # 10 unique names; alias collapses 1 variant into 1 canonical → 9 unique after
+        # Reduction: 1/10 = 10%, which is ≤ 30% → gate should pass
+        registry = {
+            "PRASA VARIANT": {
+                "canonical_name": "PRASA CANONICAL",
+                "canonical_uei": "PRASA00000001",
+                "entity_type": "government",
+            }
+        }
+        (enrichment / "alias_registry.json").write_text(json.dumps(registry), encoding="utf-8")
+        rows = [{"contract_id": f"C{i:03d}", "vendor_name": f"Unique Entity {i}"} for i in range(9)]
+        rows.append({"contract_id": "C009", "vendor_name": "PRASA VARIANT"})
+        _write_contracts(processed, rows)
+        result = run(root=tmp_path)
+        gate = result["alias_dedup_gate"]
+        assert gate["gate_pass"] is True
+        assert gate["alias_dedup_reduction_rate"] <= 0.30
+
+    def test_alias_dedup_gate_fail_for_excessive_reduction(self, tmp_path):
+        """Gate fails when alias registry collapses >30% of unique normalized names."""
+        processed = self._setup(tmp_path)
+        enrichment = processed / "enrichment"
+        enrichment.mkdir()
+        # 10 unique names; alias collapses 4 variants into 1 canonical → 7 unique after
+        # Reduction: 3/10 = 30%... let's use 5 variants collapsing → 6 unique after
+        # Reduction: 4/10 = 40% > 30% → gate should fail
+        variants = [f"Alias Variant {i}" for i in range(5)]
+        registry = {
+            v: {"canonical_name": "Single Canonical Entity", "canonical_uei": "X", "entity_type": "corporate"}
+            for v in variants
+        }
+        (enrichment / "alias_registry.json").write_text(json.dumps(registry), encoding="utf-8")
+        # 5 non-alias + 5 alias variants → 10 unique names before, 6 unique after
+        rows = [{"contract_id": f"U{i:03d}", "vendor_name": f"Unique Entity {i}"} for i in range(5)]
+        rows += [{"contract_id": f"A{i:03d}", "vendor_name": v} for i, v in enumerate(variants)]
+        _write_contracts(processed, rows)
+        result = run(root=tmp_path)
+        gate = result["alias_dedup_gate"]
+        assert gate["gate_pass"] is False
+        assert gate["alias_dedup_reduction_rate"] > 0.30
+
+    def test_alias_dedup_gate_keys_present(self, tmp_path):
+        """Gate result contains all expected keys."""
+        processed = self._setup(tmp_path)
+        enrichment = processed / "enrichment"
+        enrichment.mkdir()
+        (enrichment / "alias_registry.json").write_text("{}", encoding="utf-8")
+        _write_contracts(processed, [{"contract_id": "C001", "vendor_name": "Any Corp"}])
+        result = run(root=tmp_path)
+        gate = result["alias_dedup_gate"]
+        for key in ("unique_names_before", "unique_names_after", "alias_dedup_reduction_rate",
+                    "gate_threshold", "gate_pass"):
+            assert key in gate, f"Missing gate key: {key}"
+        assert gate["gate_threshold"] == 0.30

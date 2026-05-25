@@ -399,6 +399,9 @@ def run(root=None) -> dict:
     # ------------------------------------------------------------------
     # 5c. Apply alias registry — canonicalize names, fill missing UEIs
     # ------------------------------------------------------------------
+    _n_unique_before_alias = int(unified["recipient_name_normalized"].nunique())
+    alias_dedup_gate: dict = {}
+
     alias_path = processed_dir / "enrichment" / "alias_registry.json"
     if alias_path.exists():
         try:
@@ -411,6 +414,37 @@ def run(root=None) -> dict:
                 f"{alias_stats['names_resolved']:,} names canonicalized, "
                 f"{alias_stats['ueis_filled']:,} UEIs filled"
             )
+            # Gate: alias_dedup_reduction_rate — fraction of unique normalized names
+            # collapsed by alias resolution. Should be 5–15%; >30% suggests a bug.
+            _n_unique_after_alias = int(unified["recipient_name_normalized"].nunique())
+            _reduction_rate = (
+                (_n_unique_before_alias - _n_unique_after_alias) / _n_unique_before_alias
+                if _n_unique_before_alias > 0 else 0.0
+            )
+            _gate_threshold = 0.30
+            _gate_pass = _reduction_rate <= _gate_threshold
+            alias_dedup_gate = {
+                "unique_names_before": _n_unique_before_alias,
+                "unique_names_after": _n_unique_after_alias,
+                "alias_dedup_reduction_rate": round(_reduction_rate, 4),
+                "gate_threshold": _gate_threshold,
+                "gate_pass": _gate_pass,
+            }
+            if not _gate_pass:
+                logger.error(
+                    f"  GATE FAIL alias_dedup_reduction_rate: {_reduction_rate:.1%} "
+                    f"exceeds {_gate_threshold:.0%} threshold — possible over-collapsing in alias registry"
+                )
+            elif _reduction_rate < 0.05:
+                logger.info(
+                    f"  Alias dedup reduction: {_reduction_rate:.1%} "
+                    f"({_n_unique_before_alias:,} → {_n_unique_after_alias:,} unique names) — below expected 5%"
+                )
+            else:
+                logger.info(
+                    f"  Alias dedup reduction: {_reduction_rate:.1%} "
+                    f"({_n_unique_before_alias:,} → {_n_unique_after_alias:,} unique names) — GATE PASS"
+                )
         except Exception as exc:
             logger.warning(f"  Alias registry apply failed: {exc} — skipping")
             unified["_canonical_name"] = unified["recipient_name"]
@@ -542,6 +576,7 @@ def run(root=None) -> dict:
         "by_dataset": by_dataset,
         "by_fiscal_year": by_fiscal_year,
         "unique_recipients": unique_recipients,
+        "alias_dedup_gate": alias_dedup_gate,
         "outputs": {
             "unified_master": str(output_path),
         },
