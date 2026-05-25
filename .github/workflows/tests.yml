@@ -23,7 +23,7 @@ jobs:
       - name: Run tests
         run: |
           pip install coverage pytest-cov pytest-xdist
-          pytest -q -n auto --cov=scripts --cov-report=term-missing --cov-report=xml --cov-fail-under=15
+          pytest -q -n auto --cov=scripts --cov-report=term-missing --cov-report=xml --cov-fail-under=20
 
       - name: Upload coverage report
         if: matrix.python-version == '3.12'
