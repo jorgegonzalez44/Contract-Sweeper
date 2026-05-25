@@ -33,6 +33,12 @@ import sys
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
+try:
+    import yaml
+    _HAS_YAML = True
+except ImportError:
+    _HAS_YAML = False
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts.config import PROJECT_ROOT, setup_logging
@@ -260,6 +266,81 @@ def gate_high_value_unresolved(hierarchy_rows: list[dict]) -> GateResult:
 
 
 # ---------------------------------------------------------------------------
+# Source coverage gate
+# ---------------------------------------------------------------------------
+
+def gate_source_coverage(registry_path: Path, actuals_path: Path) -> GateResult:
+    """
+    For each source in source_registry.yaml with a coverage_target, verify that
+    actuals[source]["coverage_rate"] meets the target.
+
+    If the actuals file is absent, the gate SKIPS (vacuously passes) — prevents
+    blocking CI when data hasn't been downloaded yet.
+    """
+    name = "source_coverage_rate"
+
+    if not actuals_path.exists():
+        return GateResult(
+            name=name, value=1.0, threshold=1.0,
+            passed=True, direction="gte",
+            detail="source_coverage_actuals.json absent — gate skipped (vacuously passed)",
+        )
+
+    if not _HAS_YAML:
+        return GateResult(
+            name=name, value=1.0, threshold=1.0,
+            passed=True, direction="gte",
+            detail="PyYAML not installed — gate skipped",
+        )
+
+    if not registry_path.exists():
+        return GateResult(
+            name=name, value=1.0, threshold=1.0,
+            passed=True, direction="gte",
+            detail="source_registry.yaml not found — gate skipped",
+        )
+
+    with open(registry_path, encoding="utf-8") as f:
+        registry = yaml.safe_load(f)
+    with open(actuals_path, encoding="utf-8") as f:
+        actuals = json.load(f)
+
+    sources = registry.get("sources", {})
+    failures = []
+    checked = 0
+    for source_key, meta in sources.items():
+        target = meta.get("coverage_target")
+        if target is None:
+            continue
+        if source_key not in actuals:
+            continue
+        actual_rate = float(actuals[source_key].get("coverage_rate", 0.0))
+        checked += 1
+        if actual_rate < target:
+            failures.append(f"{source_key}={actual_rate:.3f}<{target}")
+
+    if checked == 0:
+        return GateResult(
+            name=name, value=1.0, threshold=1.0,
+            passed=True, direction="gte",
+            detail="No matching sources in actuals — gate skipped (vacuously passed)",
+        )
+
+    passed = len(failures) == 0
+    rate = (checked - len(failures)) / checked
+    detail = (f"{checked - len(failures)}/{checked} sources meet coverage targets"
+              + (f". Below target: {'; '.join(failures)}" if failures else ""))
+    return GateResult(
+        name=name,
+        value=round(rate, 4),
+        threshold=1.0,
+        passed=passed,
+        direction="gte",
+        detail=detail,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -279,11 +360,15 @@ def run(root: Path = None, report_only: bool = False) -> ValidationReport:
         f"{len(hierarchy_rows)} raw hierarchy rows"
     )
 
+    registry_path = root / "data" / "source_registry.yaml"
+    actuals_path = root / "data" / "manifests" / "source_coverage_actuals.json"
+
     gates = [
         gate_entity_type_assignment(collapsed_rows),
         gate_government_classification(collapsed_rows),
         gate_corporate_parent_uei(hierarchy_rows),
         gate_high_value_unresolved(hierarchy_rows),
+        gate_source_coverage(registry_path, actuals_path),
     ]
 
     blockers = [g.name for g in gates if not g.passed]

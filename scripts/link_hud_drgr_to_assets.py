@@ -94,8 +94,8 @@ def _classify_asset_type(name, activity_type):
 
 def run(root=None, force=False):
     root = Path(root or PROJECT_ROOT)
-    LINKED_DIR.mkdir(parents=True, exist_ok=True)
     out_path = root / "data" / "linked" / "hud_drgr_asset_linkage.csv"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     logger = setup_logging("link_hud_drgr_to_assets")
 
     if out_path.exists() and not force:
@@ -181,8 +181,8 @@ def run(root=None, force=False):
                 "municipality":         str(raw_muni).strip(),
                 "municipality_matched": muni_matched,
                 "county":               act.get("county", ""),
-                "cor3_project_id":      str(cor3_row.get("project_id", "")) if cor3_row else "",
-                "cor3_total_approved":  str(cor3_row.get("total_approved", "")) if cor3_row else "",
+                "cor3_project_id":      str(cor3_row.get("project_id", "")) if len(cor3_row) else "",
+                "cor3_total_approved":  str(cor3_row.get("total_approved", "")) if len(cor3_row) else "",
                 "municipal_finance_grade": grade,
                 "asset_type":           asset_type,
                 "total_budget":         act.get("total_budget", ""),

@@ -16,6 +16,7 @@ from scripts.validation_gates import (
     gate_entity_type_assignment,
     gate_government_classification,
     gate_high_value_unresolved,
+    gate_source_coverage,
     run,
 )
 
@@ -338,3 +339,121 @@ class TestRunIntegration:
         report = run(root=tmp_path, report_only=True)
         assert report.overall_pass is False
         assert "entity_type_assignment_rate" in report.blockers
+
+    def test_run_includes_source_coverage_gate(self, tmp_path):
+        enrichment_dir = tmp_path / "data" / "staging" / "processed" / "enrichment"
+        enrichment_dir.mkdir(parents=True)
+        (tmp_path / "data" / "manifests").mkdir(parents=True)
+
+        self._write_collapsed(enrichment_dir, [
+            {"parent_name": "Corp A", "entity_type": "corporate",
+             "parent_uei": "PRNT1", "total_obligation": "100000"},
+        ])
+        self._write_hierarchy(enrichment_dir, [
+            {"vendor_name": "Corp A", "uei": "CORP1",
+             "parent_uei": "PRNT1", "parent_name": "Corp Holdings",
+             "business_types": "corporation", "total_obligation": "100000"},
+        ])
+
+        report = run(root=tmp_path, report_only=True)
+        gate_names = [g.name for g in report.gates]
+        assert "source_coverage_rate" in gate_names
+
+
+# ---------------------------------------------------------------------------
+# gate_source_coverage
+# ---------------------------------------------------------------------------
+
+class TestSourceCoverageGate:
+    def _registry_yaml(self, path: Path, sources: dict) -> None:
+        import yaml
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(yaml.dump({"sources": sources}), encoding="utf-8")
+
+    def _actuals_json(self, path: Path, actuals: dict) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(actuals), encoding="utf-8")
+
+    def test_skips_when_actuals_missing(self, tmp_path):
+        registry = tmp_path / "data" / "source_registry.yaml"
+        actuals  = tmp_path / "data" / "manifests" / "source_coverage_actuals.json"
+        self._registry_yaml(registry, {"contracts": {"coverage_target": 0.95}})
+        result = gate_source_coverage(registry, actuals)
+        assert result.passed is True
+        assert "skipped" in result.detail.lower() or "absent" in result.detail.lower()
+
+    def test_passes_when_all_sources_meet_target(self, tmp_path):
+        registry = tmp_path / "data" / "source_registry.yaml"
+        actuals  = tmp_path / "data" / "manifests" / "source_coverage_actuals.json"
+        self._registry_yaml(registry, {
+            "contracts": {"coverage_target": 0.90},
+            "grants":    {"coverage_target": 0.85},
+        })
+        self._actuals_json(actuals, {
+            "contracts": {"coverage_rate": 0.95},
+            "grants":    {"coverage_rate": 0.92},
+        })
+        result = gate_source_coverage(registry, actuals)
+        assert result.passed is True
+        assert result.value == pytest.approx(1.0, abs=0.01)
+
+    def test_fails_when_source_below_target(self, tmp_path):
+        registry = tmp_path / "data" / "source_registry.yaml"
+        actuals  = tmp_path / "data" / "manifests" / "source_coverage_actuals.json"
+        self._registry_yaml(registry, {
+            "contracts": {"coverage_target": 0.90},
+        })
+        self._actuals_json(actuals, {
+            "contracts": {"coverage_rate": 0.70},
+        })
+        result = gate_source_coverage(registry, actuals)
+        assert result.passed is False
+        assert "contracts" in result.detail
+
+    def test_partial_failure_reported(self, tmp_path):
+        registry = tmp_path / "data" / "source_registry.yaml"
+        actuals  = tmp_path / "data" / "manifests" / "source_coverage_actuals.json"
+        self._registry_yaml(registry, {
+            "contracts": {"coverage_target": 0.90},
+            "grants":    {"coverage_target": 0.85},
+        })
+        self._actuals_json(actuals, {
+            "contracts": {"coverage_rate": 0.95},  # passes
+            "grants":    {"coverage_rate": 0.50},  # fails
+        })
+        result = gate_source_coverage(registry, actuals)
+        assert result.passed is False
+        assert result.value == pytest.approx(0.5, abs=0.01)
+
+    def test_skips_sources_not_in_actuals(self, tmp_path):
+        registry = tmp_path / "data" / "source_registry.yaml"
+        actuals  = tmp_path / "data" / "manifests" / "source_coverage_actuals.json"
+        self._registry_yaml(registry, {
+            "contracts": {"coverage_target": 0.90},
+            "grants":    {"coverage_target": 0.85},
+        })
+        # Only contracts in actuals; grants not present → not counted
+        self._actuals_json(actuals, {
+            "contracts": {"coverage_rate": 0.95},
+        })
+        result = gate_source_coverage(registry, actuals)
+        assert result.passed is True
+
+    def test_skips_when_registry_missing(self, tmp_path):
+        registry = tmp_path / "data" / "source_registry.yaml"  # does not exist
+        actuals  = tmp_path / "data" / "manifests" / "source_coverage_actuals.json"
+        self._actuals_json(actuals, {"contracts": {"coverage_rate": 0.95}})
+        result = gate_source_coverage(registry, actuals)
+        assert result.passed is True
+
+    def test_vacuously_passes_when_no_matching_sources(self, tmp_path):
+        registry = tmp_path / "data" / "source_registry.yaml"
+        actuals  = tmp_path / "data" / "manifests" / "source_coverage_actuals.json"
+        # Registry has sources but none appear in actuals → vacuous pass
+        self._registry_yaml(registry, {
+            "contracts": {"coverage_target": 0.90},
+        })
+        self._actuals_json(actuals, {})  # empty actuals
+        result = gate_source_coverage(registry, actuals)
+        assert result.passed is True
+        assert "vacuously" in result.detail.lower() or "skipped" in result.detail.lower()
